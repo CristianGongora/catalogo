@@ -3,7 +3,7 @@
     --color-gold: #D4AF37;
     --color-gold-light: #F4E5B2;
     --color-gold-dark: #AA8C2C;
-    --color-dark: #1A1A1A;
+    --color-dark: #000B1A; /* Azul noche profundo del logo */
     --color-gray: #4A4A4A;
     --color-light: #F8F8F8;
     --color-white: #FFFFFF;
@@ -46,7 +46,15 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    z-index: 100;
+}
+
+.brand-logo {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+    border: 2px solid var(--color-gold);
+    box-shadow: var(--shadow-md);
 }
 
 .nav-btn {
