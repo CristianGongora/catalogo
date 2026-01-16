@@ -62,7 +62,12 @@ body {
     margin-bottom: 1rem;
     border: 3px solid var(--color-gold);
     box-shadow: var(--shadow-md);
-    object-fit: cover;
+    object-fit: contain;
+    /* Mostrar la imagen completa sin recortar */
+    background-color: var(--color-dark);
+    /* Fondo para el espacio vacío */
+    padding: 5px;
+    /* Un poco de padding interno */
 }
 
 .nav-btn {
