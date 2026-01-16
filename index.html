@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Catálogo exclusivo de joyería fina. Aretes, cadenas, pulseras y más.">
+    <title>Joyería Exclusiva | Catálogo</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#D4AF37">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+    <!-- Fuentes (Google Fonts: Playfair Display & Outfit) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap"
+        rel="stylesheet">
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <h1 class="brand-title">Joyería <span class="accent">Exclusiva</span></h1>
+            <p class="brand-subtitle">Elegancia en cada detalle</p>
+        </div>
+        <nav class="main-nav" id="mainNav" style="display: none;">
+            <button id="btnHome" class="nav-btn active">Inicio</button>
+            <button id="btnBack" class="nav-btn" hidden>← Volver</button>
+        </nav>
+    </header>
+
+    <main id="appMain" class="container">
+        <!-- El contenido se inyectará dinámicamente aquí -->
+    </main>
+
+    <!-- Loading Spinner independiente -->
+    <div id="loading-container">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <footer class="app-footer">
+        <p>&copy; 2024 Joyería Exclusiva</p>
+    </footer>
+
+    <!-- Modals -->
+    <div id="productModal" class="modal" hidden>
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Categoría -->
+    <div id="editCategoryModal" class="modal" hidden>
+        <div class="modal-content" style="padding: 2rem;">
+            <h3 style="margin-bottom: 1rem; font-family: var(--font-heading);">Editar Categoría</h3>
+            <input type="text" id="editCatInput"
+                style="width: 100%; padding: 0.8rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 4px; font-family: var(--font-body);">
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button id="btnCancelEdit" class="btn" style="border: 1px solid #ddd;">Cancelar</button>
+                <button id="btnSaveEdit" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Producto -->
+    <div id="editProductModal" class="modal" hidden>
+        <div class="modal-content" style="padding: 2rem; max-width: 600px;">
+            <h3 style="margin-bottom: 1rem; font-family: var(--font-heading);">Editar Producto</h3>
+            <form id="editProductForm">
+                <input type="hidden" id="editProdId">
+                <div style="margin-bottom: 1rem; text-align: left;">
+                    <label>Título</label>
+                    <input type="text" id="editProdTitle" required
+                        style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
+                </div>
+                <div style="margin-bottom: 1rem; text-align: left;">
+                    <label>Categoría</label>
+                    <select id="editProdCategory" required
+                        style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem; text-align: left;">
+                    <label>Imagen (Opcional)</label>
+                    <input type="file" id="editProdImage" accept="image/*"
+                        style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
+                    <small style="color: #666;">Deja vacío para mantener la imagen actual.</small>
+                </div>
+                <div style="margin-bottom: 1rem; text-align: left;">
+                    <label>Descripción</label>
+                    <textarea id="editProdDesc" rows="3"
+                        style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;"></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" id="btnCancelEditProd" class="btn"
+                        style="border: 1px solid #ddd;">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Confirmación Genérico -->
+    <div id="confirmModal" class="modal" hidden>
+        <div class="modal-content" style="padding: 2rem; max-width: 400px; text-align: center;">
+            <h3 id="confirmTitle"
+                style="margin-bottom: 1rem; color: var(--color-dark); font-family: var(--font-heading);">Confirmar</h3>
+            <p id="confirmMsg" style="margin-bottom: 2rem; color: var(--color-gray);">¿Estás seguro?</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button id="btnCancelConfirm" class="btn" style="border: 1px solid #ddd;">Cancelar</button>
+                <button id="btnYesConfirm" class="btn btn-primary">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Información (Alert reemplazo) -->
+    <div id="infoModal" class="modal" hidden>
+        <div class="modal-content" style="padding: 2rem; max-width: 400px; text-align: center;">
+            <h3 id="infoTitle" style="margin-bottom: 1rem; color: var(--color-dark); font-family: var(--font-heading);">
+                Información</h3>
+            <p id="infoMsg" style="margin-bottom: 2rem; color: var(--color-gray);"></p>
+            <button id="btnOkInfo" class="btn btn-primary">Aceptar</button>
+        </div>
+    </div>
+
+    <!-- Modal Login Admin -->
+    <div id="loginModal" class="modal" hidden>
+        <div class="modal-content" style="padding: 2rem; max-width: 400px; text-align: center;">
+            <h3 style="margin-bottom: 1rem; font-family: var(--font-heading);">Acceso Admin</h3>
+            <input type="password" id="adminPasswordInput" placeholder="Contraseña"
+                style="width: 100%; padding: 0.8rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button id="btnCancelLogin" class="btn" style="border: 1px solid #ddd;">Cancelar</button>
+                <button id="btnLoginConfirm" class="btn btn-primary">Entrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+
+    <!-- App Logic -->
+    <script type="module" src="./js/app.js"></script>
+</body>
+
+</html>

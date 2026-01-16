@@ -1,0 +1,14 @@
+# Configuración y Credenciales
+js/config.js
+
+# IDEs y Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema y Otros
+.DS_Store
+Thumbs.db
+node_modules/
+.gemini/
