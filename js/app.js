@@ -10,14 +10,12 @@ const state = {
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', async () => {
-    // Registrar Service Worker (Desactivado para desarrollo)
-    /*
+    // Registrar Service Worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
             .then(() => console.log('Service Worker registrado'))
             .catch(err => console.error('Error al registrar SW:', err));
     }
-    */
 
     // Inicializar UI
     initNavigation();

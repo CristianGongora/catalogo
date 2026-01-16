@@ -1,30 +1,48 @@
-const CACHE_NAME = 'joyeria-cache-v2-DEV';
+const CACHE_NAME = 'camale-cache-v1';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './styles.css',
+    './assets/logo.jpg',
     './js/app.js',
     './js/ui.js',
     './js/data.js',
+    './js/admin.js',
     './js/drive-api.js',
     './js/config.js',
-    'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap'
+    './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => cache.addAll(ASSETS_TO_CACHE))
+            .then(() => self.skipWaiting())
+    );
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        }).then(() => self.clients.claim())
     );
 });
 
 self.addEventListener('fetch', (event) => {
-    // Estrategia Stale-While-Revalidate para contenido estático
     event.respondWith(
         caches.match(event.request)
             .then((cachedResponse) => {
-                const fetchPromise = fetch(event.request).then((networkResponse) => {
-                    // Actualizar caché si es válida
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                return fetch(event.request).then((networkResponse) => {
                     if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
                         const responseToCache = networkResponse.clone();
                         caches.open(CACHE_NAME).then((cache) => {
@@ -33,7 +51,6 @@ self.addEventListener('fetch', (event) => {
                     }
                     return networkResponse;
                 });
-                return cachedResponse || fetchPromise;
             })
     );
 });

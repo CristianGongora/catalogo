@@ -1,21 +1,24 @@
 {
-  "name": "Joyería Exclusiva",
-  "short_name": "Joyería",
-  "start_url": "./index.html",
+  "name": "CAMALÉ - Lujo Sutil",
+  "short_name": "CAMALÉ",
+  "description": "Catálogo exclusivo de joyería fina",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#F9F9F9",
-  "theme_color": "#D4AF37",
-  "orientation": "portrait",
+  "background_color": "#0A1628",
+  "theme_color": "#0A1628",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "assets/logo.jpg",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "assets/logo.jpg",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     }
   ]
 }
