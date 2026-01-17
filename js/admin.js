@@ -111,6 +111,19 @@ function openLoginModal() {
     };
 }
 
+// Utilitario para mostrar precio formateado en admin
+function formatPriceAdmin(value) {
+    if (!value) return 'Sin precio';
+    let clean = String(value).replace(/[^\d]/g, '');
+    if (!clean) return value;
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0
+    }).format(clean);
+}
+
+
 function loadAdminDashboard() {
     const main = document.getElementById('appMain');
     main.innerHTML = `
@@ -225,7 +238,7 @@ function showManageProducts() {
                 <img src="${p.image}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
                 <div>
                     <div style="font-weight:500;">${p.title}</div>
-                    <div style="font-size:0.8rem; color:var(--color-gold-dark); font-weight:500;">${p.price || 'Sin precio'}</div>
+                    <div style="font-size:0.8rem; color:var(--color-gold-dark); font-weight:500;">${formatPriceAdmin(p.price)}</div>
                     <div style="font-size:0.8rem; color:#666;">${p.category}</div>
                 </div>
             </div>

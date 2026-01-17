@@ -38,10 +38,9 @@ body {
     flex-direction: column;
 }
 
-/* Header */
 .app-header {
     background-color: var(--color-white);
-    padding: 2rem 1rem;
+    padding: 1rem;
     text-align: center;
     box-shadow: var(--shadow-sm);
     position: sticky;
@@ -56,18 +55,15 @@ body {
 }
 
 .brand-logo {
-    width: 100px;
-    height: 100px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    margin-bottom: 1rem;
-    border: 3px solid var(--color-gold);
-    box-shadow: var(--shadow-md);
+    margin-bottom: 0.5rem;
+    border: 2px solid var(--color-gold);
+    box-shadow: var(--shadow-sm);
     object-fit: contain;
-    /* Mostrar la imagen completa sin recortar */
     background-color: var(--color-dark);
-    /* Fondo para el espacio vacío */
-    padding: 5px;
-    /* Un poco de padding interno */
+    padding: 3px;
 }
 
 .nav-btn {
@@ -96,9 +92,9 @@ body {
 
 .brand-title {
     font-family: var(--font-heading);
-    font-size: 2.5rem;
+    font-size: 1.4rem;
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.1em;
     color: var(--color-dark);
 }
 
@@ -109,10 +105,10 @@ body {
 
 .brand-subtitle {
     text-transform: uppercase;
-    letter-spacing: 0.15em;
-    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    font-size: 0.65rem;
     color: var(--color-gray);
-    margin-top: 0.5rem;
+    margin-top: 0.1rem;
 }
 
 /* Container */

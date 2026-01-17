@@ -1,6 +1,25 @@
 import { CONFIG } from './config.js';
 
-// Funciones de utilidad para el DOM
+// Utilitario para formatear precios como COP
+function formatPrice(value) {
+    if (!value) return 'Consultar';
+
+    // Si ya viene formateado con $, retornarlo tal cual pero limpiar espacios extras si hay
+    if (typeof value === 'string' && value.includes('$')) {
+        return value.trim();
+    }
+
+    // Si es un número o string con solo dígitos, formatear
+    const num = parseFloat(String(value).replace(/[^\d]/g, ''));
+    if (isNaN(num)) return value;
+
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(num);
+}
 
 export function showLoading() {
     const spinner = document.getElementById('loading-container');
@@ -61,7 +80,7 @@ export function renderProducts(products, container) {
             </div>
             <div class="card-content">
                 <h3 class="card-title" style="font-size: 1.2rem;">${prod.title}</h3>
-                <div class="card-price" style="color: var(--color-gold-dark); font-weight: 500;">${prod.price || 'Consultar'}</div>
+                <div class="card-price" style="color: var(--color-gold-dark); font-weight: 500;">${formatPrice(prod.price)}</div>
             </div>
         `;
 
@@ -93,7 +112,7 @@ function showProductModal(product) {
         <div style="text-align: center;">
             <img src="${imgSrc}" style="max-width: 100%; max-height: 50vh; object-fit: contain; margin-bottom: 1rem; border-radius: 8px;">
             <h2 style="font-family: var(--font-heading); margin-bottom: 0.5rem;">${product.title}</h2>
-            <div style="color: var(--color-gold-dark); font-weight: 500; font-size: 1.2rem; margin-bottom: 0.5rem;">${product.price ? product.price : ''}</div>
+            <div style="color: var(--color-gold-dark); font-weight: 500; font-size: 1.2rem; margin-bottom: 0.5rem;">${formatPrice(product.price)}</div>
             <p style="color: var(--color-gray); margin-bottom: 1.5rem;">${product.description || 'Sin descripción'}</p>
             <a href="https://wa.me/${phone}?text=${msg}" target="_blank" class="btn btn-primary" style="display:inline-block; text-decoration:none; padding: 1rem 2rem;">
                 <span style="font-size: 1.2rem; vertical-align: middle;">✆</span> Consultar por WhatsApp
