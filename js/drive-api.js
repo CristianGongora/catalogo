@@ -98,7 +98,9 @@ export async function getOrCreateDataFile() {
             });
             files = response.result.files;
         } else {
-            const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&key=${CONFIG.API_KEY}`);
+            // Cache busting for public fetch
+            const cb = `&cb=${Date.now()}`;
+            const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&key=${CONFIG.API_KEY}${cb}`);
             const result = await response.json();
             files = result.files;
         }
@@ -162,14 +164,16 @@ export async function getFileContent(fileId) {
     try {
         // Intentar con gapi client primero
         if (gapiInited && gapi.client.drive) {
+            // El cliente gapi maneja sus propios encabezados, pero podemos intentar forzar cache-control
             const response = await gapi.client.drive.files.get({
                 fileId: fileId,
                 alt: 'media'
             });
             return response.result;
         } else {
-            // Fallback: Fetch directo usando API Key
-            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${CONFIG.API_KEY}`);
+            // Fallback: Fetch directo usando API Key + Cache Busting
+            const cb = `&cb=${Date.now()}`;
+            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${CONFIG.API_KEY}${cb}`);
             if (!response.ok) throw new Error('Error al leer archivo vía fetch');
             return await response.json();
         }

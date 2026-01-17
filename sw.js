@@ -36,9 +36,12 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // No interceptar llamadas a las APIs de Google
-    if (event.request.url.includes('googleapis.com') || event.request.url.includes('googleusercontent.com')) {
-        return;
+    // IGNORAR COMPLETAMENTE Google APIs y Drive content
+    // Esto previene errores de CORS y asegura que los datos siempre vengan frescos de la red
+    if (event.request.url.includes('googleapis.com') ||
+        event.request.url.includes('googleusercontent.com') ||
+        event.request.url.includes('drive.google.com')) {
+        return; // Deja que el navegador maneje la petición normalmente
     }
 
     event.respondWith(

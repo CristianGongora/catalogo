@@ -24,7 +24,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     showLoading();
     try {
         await initData();
-        // La navegación inicial (Home o Admin) se decide en initNavigation
+        // Iniciar sincronización de fondo (30 segundos)
+        startBackgroundSync();
     } catch (error) {
         console.error("Error inicializando app:", error);
         alert("Error cargando el catálogo. Revisa la consola o la configuración.");
@@ -32,6 +33,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         hideLoading();
     }
 });
+
+function startBackgroundSync() {
+    setInterval(async () => {
+        // Solo sincronizar si no estamos en medio de un submit o carga pesada
+        const hasChanges = await initData(); // initData llama a syncFromDrive
+        if (hasChanges) {
+            refreshCurrentView();
+        }
+    }, 30000); // 30 segundos
+}
+
+function refreshCurrentView() {
+    // Si estamos en admin, no refrescar agresivamente para no interrumpir formularios
+    // pero si estamos en la vista de cliente, refrescar la parrilla
+    if (!localStorage.getItem('adminSession') || localStorage.getItem('adminSession') === 'false') {
+        if (state.currentCategory) {
+            navigateToCategory(state.currentCategory);
+        } else {
+            loadHome();
+        }
+    }
+}
 
 function initNavigation() {
     const btnHome = document.getElementById('btnHome');

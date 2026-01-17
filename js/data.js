@@ -52,16 +52,26 @@ async function syncFromDrive() {
 
         const content = await getFileContent(dataFileId);
         if (content) {
+            const oldData = JSON.stringify({ categories: cachedCategories, products: cachedProducts });
+
             // Normalizar categorías antiguas (string) a objetos si es necesario
             cachedCategories = (content.categories || cachedCategories).map(cat =>
                 typeof cat === 'string' ? { name: cat, id: null } : cat
             );
             cachedProducts = content.products || cachedProducts;
-            console.log("✅ Datos sincronizados desde Drive");
+
+            const newData = JSON.stringify({ categories: cachedCategories, products: cachedProducts });
+
+            if (oldData !== newData) {
+                console.log("🔄 Datos actualizados desde Drive (Cambios detectados)");
+                return true; // Indica que hubo cambios
+            }
+            return false; // No hubo cambios
         }
     } catch (err) {
         console.error("Error sincronizando desde Drive:", err);
     }
+    return false;
 }
 
 async function saveToDrive() {
