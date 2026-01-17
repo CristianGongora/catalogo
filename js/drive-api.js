@@ -200,9 +200,6 @@ export async function updateFileContent(fileId, content) {
     }
 }
 
-/**
- * Crea una carpeta en Google Drive usando fetch para mayor compatibilidad
- */
 export async function createFolder(folderName, parentId) {
     try {
         const metadata = {
@@ -211,7 +208,18 @@ export async function createFolder(folderName, parentId) {
             parents: [parentId || CONFIG.FOLDER_ID]
         };
 
-        const response = await fetch('https://www.googleapis.com/api/drive/v3/files?fields=id', {
+        // Prioridad: Usar gapi client si está disponible (mejor manejo de CORS)
+        if (gapiInited && gapi.client.drive) {
+            const response = await gapi.client.drive.files.create({
+                resource: metadata,
+                fields: 'id'
+            });
+            console.log(`✅ Carpeta '${folderName}' creada (gapi):`, response.result.id);
+            return response.result.id;
+        }
+
+        // Fallback: fetch directo (URL corregida sin /api/)
+        const response = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
             method: 'POST',
             headers: new Headers({
                 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token,
@@ -223,7 +231,7 @@ export async function createFolder(folderName, parentId) {
         const result = await response.json();
         if (result.error) throw new Error(result.error.message);
 
-        console.log(`✅ Carpeta '${folderName}' creada:`, result.id);
+        console.log(`✅ Carpeta '${folderName}' creada (fetch):`, result.id);
         return result.id;
     } catch (err) {
         console.error('Error creando carpeta:', err);
@@ -284,7 +292,13 @@ export async function uploadImage(base64Data, fileName, parentId) {
  */
 export async function deleteFile(fileId) {
     try {
-        const response = await fetch(`https://www.googleapis.com/api/drive/v3/files/${fileId}`, {
+        if (gapiInited && gapi.client.drive) {
+            await gapi.client.drive.files.delete({ fileId: fileId });
+            console.log("✅ Eliminado de Drive (gapi):", fileId);
+            return;
+        }
+
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
             method: 'DELETE',
             headers: new Headers({
                 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token
@@ -292,12 +306,11 @@ export async function deleteFile(fileId) {
         });
 
         if (!response.ok) {
-            // Intentar leer error si existe
             const err = await response.json().catch(() => ({}));
             throw new Error(err.error?.message || 'Error al eliminar de Drive');
         }
 
-        console.log("✅ Eliminado de Drive:", fileId);
+        console.log("✅ Eliminado de Drive (fetch):", fileId);
     } catch (err) {
         console.error('Error eliminando de Drive:', err);
         throw err;

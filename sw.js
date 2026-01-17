@@ -36,6 +36,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    // No interceptar llamadas a las APIs de Google
+    if (event.request.url.includes('googleapis.com') || event.request.url.includes('googleusercontent.com')) {
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request)
             .then((cachedResponse) => {
