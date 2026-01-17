@@ -167,17 +167,21 @@ export async function updateProductLocal(id, updatedData) {
     }
 }
 
-export async function addCategoryLocal(categoryName) {
+export async function addCategoryLocal(categoryName, imageBase64 = null) {
     if (!cachedCategories.find(c => c.name === categoryName)) {
         let folderId = null;
+        let imageUrl = null;
         if (isDriveConnected) {
             try {
                 folderId = await createFolder(categoryName);
+                if (imageBase64) {
+                    imageUrl = await uploadImage(imageBase64, `cat_${categoryName}`, folderId);
+                }
             } catch (err) {
-                console.error("Error creando carpeta para la categoría:", err);
+                console.error("Error creando categoría en Drive:", err);
             }
         }
-        cachedCategories.push({ name: categoryName, id: folderId });
+        cachedCategories.push({ name: categoryName, id: folderId, image: imageUrl || imageBase64 });
         await saveToDrive();
     }
 }
@@ -195,12 +199,24 @@ export async function deleteCategoryLocal(categoryName) {
     await saveToDrive();
 }
 
-export async function updateCategoryLocal(oldName, newName) {
+export async function updateCategoryLocal(oldName, newName, imageBase64 = null) {
     const index = cachedCategories.findIndex(c => c.name === oldName);
     if (index !== -1) {
+        let imageUrl = cachedCategories[index].image;
+
+        if (imageBase64 && imageBase64.startsWith('data:image') && isDriveConnected) {
+            try {
+                imageUrl = await uploadImage(imageBase64, `cat_${newName}`, cachedCategories[index].id);
+            } catch (err) {
+                console.error("Error subiendo nueva imagen de categoría:", err);
+            }
+        } else if (imageBase64) {
+            imageUrl = imageBase64;
+        }
+
         cachedCategories[index].name = newName;
-        // Nota: El ID de la carpeta se mantiene igual, solo cambia el nombre visual en la app.
-        // Podríamos renombrar la carpeta en Drive también si fuera necesario.
+        cachedCategories[index].image = imageUrl;
+
         cachedProducts.forEach(p => {
             if (p.category === oldName) p.category = newName;
         });

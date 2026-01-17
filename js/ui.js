@@ -33,22 +33,30 @@ export function hideLoading() {
 
 export function renderCategories(categories, container, onCategoryClick) {
     container.innerHTML = '';
-    categories.forEach(cat => {
+    categories.forEach(catName => {
+        const catObj = typeof catName === 'object' ? catName : { name: catName };
         const card = document.createElement('div');
         card.className = 'card';
         // Animación de entrada
         card.style.opacity = '0';
         card.style.transform = 'translateY(10px)';
 
+        const hasImage = catObj.image;
+
         card.innerHTML = `
+            ${hasImage ? `
+                <div class="card-image-container">
+                    <img src="${catObj.image}" alt="${catObj.name}" class="card-image" loading="lazy">
+                </div>
+            ` : ''}
             <div class="card-content">
-                <i class="icon-folder" style="font-size: 2rem; color: var(--color-gold); margin-bottom: 1rem; display:block;">❖</i>
-                <h3 class="card-title">${cat}</h3>
+                ${!hasImage ? '<i class="icon-folder" style="font-size: 2rem; color: var(--color-gold); margin-bottom: 1rem; display:block;">❖</i>' : ''}
+                <h3 class="card-title">${catObj.name}</h3>
                 <span class="card-label">Explorar Colección</span>
             </div>
         `;
 
-        card.addEventListener('click', () => onCategoryClick(cat));
+        card.addEventListener('click', () => onCategoryClick(catObj.name));
         container.appendChild(card);
 
         // Trigger reflow para animación

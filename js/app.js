@@ -103,8 +103,10 @@ export function loadHome() {
     const main = document.getElementById('appMain');
     main.innerHTML = '<div class="category-grid" id="categoryGrid"></div>';
 
-    const categories = getCategories();
-    renderCategories(categories, document.getElementById('categoryGrid'), navigateToCategory);
+    import('./data.js').then(dataMod => {
+        const categories = dataMod.getCategoryObjects();
+        renderCategories(categories, document.getElementById('categoryGrid'), navigateToCategory);
+    });
 
     document.getElementById('mainNav').style.display = 'flex';
     document.querySelector('.brand-subtitle').textContent = "Categorías";

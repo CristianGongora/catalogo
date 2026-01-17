@@ -336,15 +336,20 @@ function showManageCategories() {
     const content = document.getElementById('adminContent');
     const categories = getCategories();
 
-    const listHtml = categories.map(c => `
+    const listHtml = categories.map(c => {
+        const catObj = cachedCategories.find(cat => cat.name === c) || {};
+        return `
         <li style="padding:0.8rem; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
-            <span class="cat-name">${c}</span>
+            <div style="display:flex; align-items:center; gap:1rem;">
+                ${catObj.image ? `<img src="${catObj.image}" style="width:40px; height:40px; object-fit:contain; border-radius:4px; background:#fff; border:1px solid #eee;">` : '<span style="font-size:1.5rem;">❖</span>'}
+                <span class="cat-name">${c}</span>
+            </div>
             <div style="display:flex; gap:0.5rem;">
                 <button class="btn-edit" data-cat="${c}" style="background:none; border:none; cursor:pointer; font-size:1.2rem;" title="Editar">✏️</button>
                 <button class="btn-delete-cat" data-cat="${c}" style="background:none; border:none; cursor:pointer; font-size:1.2rem;" title="Eliminar">🗑️</button>
             </div>
         </li>
-    `).join('');
+    `}).join('');
 
     content.innerHTML = `
         <div class="card" style="padding: 2rem; max-width: 600px; margin: 0 auto;">
@@ -352,18 +357,32 @@ function showManageCategories() {
             <ul style="list-style:none; margin-bottom: 2rem;" id="catList">
                 ${listHtml}
             </ul>
-            <div style="display:flex; gap:0.5rem; border-top: 1px solid #eee; padding-top: 1rem;">
-                <input type="text" id="newCatInput" placeholder="Nueva categoría..." style="flex:1; padding:0.8rem; border:1px solid #ddd; border-radius:4px;">
-                <button id="btnAddCat" class="btn btn-primary">Agregar</button>
+            <div style="display:flex; flex-direction:column; gap:0.5rem; border-top: 1px solid #eee; padding-top: 1rem;">
+                <input type="text" id="newCatInput" placeholder="Nombre de categoría..." style="padding:0.8rem; border:1px solid #ddd; border-radius:4px;">
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <input type="file" id="newCatImage" accept="image/*" style="flex:1;">
+                    <button id="btnAddCat" class="btn btn-primary">Agregar</button>
+                </div>
             </div>
         </div>
     `;
 
     document.getElementById('btnAddCat').onclick = async () => {
         const input = document.getElementById('newCatInput');
+        const fileInput = document.getElementById('newCatImage');
         const val = input.value.trim();
+
+        let imageBase64 = null;
+        if (fileInput.files && fileInput.files[0]) {
+            const reader = new FileReader();
+            imageBase64 = await new Promise(resolve => {
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(fileInput.files[0]);
+            });
+        }
+
         if (val) {
-            await addCategoryLocal(val);
+            await addCategoryLocal(val, imageBase64);
             showManageCategories();
         }
     };
