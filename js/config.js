@@ -8,7 +8,7 @@ export const CONFIG = {
     SCOPES: 'https://www.googleapis.com/auth/drive.file',
     // Número para recibir pedidos (Formato internacional sin + ni espacios, ej: 573001234567)
     WHATSAPP_PHONE: '+573157690773',
-    ADMIN_PASSWORD: 'Temporla1', // Cambia esto por tu contraseña deseada
+    ADMIN_PASSWORD: '26$Camale', // Cambia esto por tu contraseña deseada
     CLOUDINARY_NAME: 'djb4wqykv',
     CLOUDINARY_PRESET: 'camale'
 };
