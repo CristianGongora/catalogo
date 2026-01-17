@@ -1,4 +1,4 @@
-import { getCategories, getAllProducts, addProductLocal, addCategoryLocal, deleteCategoryLocal, updateCategoryLocal, deleteProductLocal, updateProductLocal } from './data.js';
+import { getCategories, getCategoryObjects, getAllProducts, addProductLocal, addCategoryLocal, deleteCategoryLocal, updateCategoryLocal, deleteProductLocal, updateProductLocal } from './data.js';
 import { renderCategories } from './ui.js';
 import { loadHome } from './app.js';
 
@@ -336,8 +336,9 @@ function showManageCategories() {
     const content = document.getElementById('adminContent');
     const categories = getCategories();
 
+    const allCategoryObjects = getCategoryObjects();
     const listHtml = categories.map(c => {
-        const catObj = cachedCategories.find(cat => cat.name === c) || {};
+        const catObj = allCategoryObjects.find(cat => cat.name === c) || {};
         return `
         <li style="padding:0.8rem; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
             <div style="display:flex; align-items:center; gap:1rem;">
