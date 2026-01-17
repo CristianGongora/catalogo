@@ -87,11 +87,19 @@ function openLoginModal() {
         if (password === 'admin') {
             localStorage.setItem('adminSession', 'true');
             modal.hidden = true;
+
+            // Disparar sincronización con Drive inmediatamente sin recargar
+            import('./data.js').then(dataMod => {
+                dataMod.initData().then(() => {
+                    console.log("🔄 Datos sincronizados tras login de admin");
+                    loadAdminDashboard();
+                });
+            });
+
             // Limpiar parámetro de la URL
             const url = new URL(window.location);
             url.searchParams.delete('admin');
             window.history.replaceState({}, '', url);
-            loadAdminDashboard();
         } else {
             openInfoModal('Error', 'Contraseña incorrecta');
             input.value = '';

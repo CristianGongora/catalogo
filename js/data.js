@@ -16,6 +16,12 @@ let hasSuccessfullyLoaded = false; // Flag de seguridad para evitar sobreescribi
 export async function initData() {
     console.log("Inicializando datos...");
 
+    // Permitir re-inicialización si pasamos a modo admin
+    if (isDriveConnected && localStorage.getItem('adminSession') !== 'true') {
+        // Si ya estamos conectados y NO somos admin, no hace falta hacer nada
+        // Pero si somos admin, queremos forzar el flujo de login de Drive
+    }
+
     // Si no hay Folder ID o API Key, trabajamos solo en local (Demo)
     if (!CONFIG.FOLDER_ID || !CONFIG.API_KEY || !CONFIG.CLIENT_ID) {
         console.warn("Faltan credenciales de Google Drive en config.js. Iniciando en modo DEMO local.");
