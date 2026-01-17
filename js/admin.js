@@ -62,7 +62,7 @@ function openGenericConfirmModal(title, msg, onConfirm) {
 function openDeleteConfirmModal(msg, onConfirm) {
     openGenericConfirmModal('Eliminar', msg, onConfirm);
     const btnYes = document.getElementById('btnYesConfirm');
-    btnYes.className = 'btn btn-delete';
+    btnYes.className = 'btn btn-danger';
     btnYes.textContent = 'Eliminar';
 }
 

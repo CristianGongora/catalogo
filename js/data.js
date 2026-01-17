@@ -1,4 +1,4 @@
-import { initGapi, signIn, getOrCreateDataFile, getFileContent, updateFileContent, uploadImage, createFolder } from './drive-api.js';
+import { initGapi, signIn, getOrCreateDataFile, getFileContent, updateFileContent, uploadImage, createFolder, deleteFile } from './drive-api.js';
 import { CONFIG } from './config.js';
 
 // Categorías iniciales como objetos { name, id }
@@ -123,6 +123,17 @@ export async function addProductLocal(product) {
 }
 
 export async function deleteProductLocal(id) {
+    const product = cachedProducts.find(p => p.id == id);
+    if (product && isDriveConnected && product.image && product.image.includes('lh3.googleusercontent.com')) {
+        try {
+            // Extraer ID de la URL: https://lh3.googleusercontent.com/u/0/d/FILE_ID
+            const parts = product.image.split('/');
+            const fileId = parts[parts.length - 1];
+            await deleteFile(fileId);
+        } catch (err) {
+            console.error("Error eliminando imagen de producto en Drive:", err);
+        }
+    }
     cachedProducts = cachedProducts.filter(p => p.id != id);
     await saveToDrive();
 }
@@ -159,6 +170,14 @@ export async function addCategoryLocal(categoryName) {
 }
 
 export async function deleteCategoryLocal(categoryName) {
+    const categoryObj = cachedCategories.find(c => c.name === categoryName);
+    if (categoryObj && categoryObj.id && isDriveConnected) {
+        try {
+            await deleteFile(categoryObj.id);
+        } catch (err) {
+            console.error("Error eliminando carpeta de categoría en Drive:", err);
+        }
+    }
     cachedCategories = cachedCategories.filter(c => c.name !== categoryName);
     await saveToDrive();
 }

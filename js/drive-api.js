@@ -249,3 +249,18 @@ export async function uploadImage(base64Data, fileName, parentId) {
         throw err;
     }
 }
+
+/**
+ * Elimina un archivo o carpeta de Google Drive
+ */
+export async function deleteFile(fileId) {
+    try {
+        await gapi.client.drive.files.delete({
+            fileId: fileId
+        });
+        console.log("✅ Eliminado de Drive:", fileId);
+    } catch (err) {
+        console.error('Error eliminando de Drive:', err);
+        throw err;
+    }
+}

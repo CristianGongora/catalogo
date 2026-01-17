@@ -281,7 +281,16 @@ body {
     box-shadow: var(--shadow-md);
 }
 
-.btn-delete {
+.btn-danger {
+    background-color: #c62828;
+    color: var(--color-white);
+}
+
+.btn-danger:hover {
+    background-color: #b71c1c;
+}
+
+.btn-delete-icon {
     background-color: #ffebee;
     color: #c62828;
     position: absolute;
@@ -296,11 +305,25 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: var(--shadow-sm);
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-delete-icon:hover {
+    background-color: #ffcdd2;
+}
+
+/* Para compatibilidad si se usa .btn-delete en el modal */
+.btn-delete {
+    background-color: #ffebee;
+    color: #c62828;
 }
 
 .btn-delete:hover {
     background-color: #ffcdd2;
 }
+
 
 /* Modal */
 .modal {
