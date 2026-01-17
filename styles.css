@@ -371,6 +371,11 @@ body {
     pointer-events: auto;
 }
 
+#infoModal,
+#confirmModal {
+    z-index: 2000;
+}
+
 .modal-content {
     background: white;
     padding: 3rem 2rem;
