@@ -1,4 +1,5 @@
-import { initGapi, signIn, getOrCreateDataFile, getFileContent, updateFileContent, uploadImage, createFolder, deleteFile } from './drive-api.js';
+import { initGapi, signIn, getOrCreateDataFile, getFileContent, updateFileContent, createFolder, deleteFile } from './drive-api.js';
+import { uploadImage as uploadToCloudinary } from './cloudinary-api.js';
 import { CONFIG } from './config.js';
 
 let cachedCategories = [];
@@ -117,17 +118,13 @@ export function getAllProducts() {
 export async function addProductLocal(product) {
     product.id = Date.now();
 
-    // Si hay imagen base64 y Drive está conectado, subirla primero
-    if (product.image && product.image.startsWith('data:image') && isDriveConnected) {
+    // Si hay imagen base64, subirla a Cloudinary
+    if (product.image && product.image.startsWith('data:image')) {
         try {
-            // Buscar el Folder ID de la categoría
-            const categoryObj = cachedCategories.find(c => c.name === product.category);
-            const parentId = categoryObj ? categoryObj.id : null;
-
-            const driveImageUrl = await uploadImage(product.image, product.title, parentId);
-            product.image = driveImageUrl;
+            const cloudinaryUrl = await uploadToCloudinary(product.image);
+            product.image = cloudinaryUrl;
         } catch (err) {
-            console.error("Error subiendo imagen a Drive, se usará base64 local:", err);
+            console.error("Error subiendo imagen a Cloudinary, se usará base64 local:", err);
         }
     }
 
@@ -154,12 +151,12 @@ export async function deleteProductLocal(id) {
 export async function updateProductLocal(id, updatedData) {
     const index = cachedProducts.findIndex(p => p.id == id);
     if (index !== -1) {
-        // Manejar cambio de imagen en Drive si es base64
-        if (updatedData.image && updatedData.image.startsWith('data:image') && isDriveConnected) {
+        // Manejar cambio de imagen en Cloudinary si es base64
+        if (updatedData.image && updatedData.image.startsWith('data:image')) {
             try {
-                updatedData.image = await uploadImage(updatedData.image, updatedData.title);
+                updatedData.image = await uploadToCloudinary(updatedData.image);
             } catch (err) {
-                console.error("Error subiendo nueva imagen:", err);
+                console.error("Error subiendo nueva imagen a Cloudinary:", err);
             }
         }
         cachedProducts[index] = { ...cachedProducts[index], ...updatedData };
@@ -174,11 +171,15 @@ export async function addCategoryLocal(categoryName, imageBase64 = null) {
         if (isDriveConnected) {
             try {
                 folderId = await createFolder(categoryName);
-                if (imageBase64) {
-                    imageUrl = await uploadImage(imageBase64, `cat_${categoryName}`, folderId);
-                }
             } catch (err) {
-                console.error("Error creando categoría en Drive:", err);
+                console.error("Error creando carpeta en Drive:", err);
+            }
+        }
+        if (imageBase64) {
+            try {
+                imageUrl = await uploadToCloudinary(imageBase64);
+            } catch (err) {
+                console.error("Error subiendo imagen de categoría a Cloudinary:", err);
             }
         }
         cachedCategories.push({ name: categoryName, id: folderId, image: imageUrl || imageBase64 });
@@ -204,11 +205,11 @@ export async function updateCategoryLocal(oldName, newName, imageBase64 = null) 
     if (index !== -1) {
         let imageUrl = cachedCategories[index].image;
 
-        if (imageBase64 && imageBase64.startsWith('data:image') && isDriveConnected) {
+        if (imageBase64 && imageBase64.startsWith('data:image')) {
             try {
-                imageUrl = await uploadImage(imageBase64, `cat_${newName}`, cachedCategories[index].id);
+                imageUrl = await uploadToCloudinary(imageBase64);
             } catch (err) {
-                console.error("Error subiendo nueva imagen de categoría:", err);
+                console.error("Error subiendo nueva imagen de categoría a Cloudinary:", err);
             }
         } else if (imageBase64) {
             imageUrl = imageBase64;

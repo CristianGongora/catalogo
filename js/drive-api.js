@@ -313,53 +313,7 @@ export async function createFolder(folderName, parentId) {
     }
 }
 
-/**
- * Sube una imagen Base64 a Drive y retorna su URL pública
- */
-export async function uploadImage(base64Data, fileName, parentId) {
-    // Extraer tipo y limpiar base64
-    const parts = base64Data.split(';base64,');
-    const mimeType = parts[0].split(':')[1];
-    const raw = window.atob(parts[1]);
-    const rawLength = raw.length;
-    const uInt8Array = new Uint8Array(rawLength);
-    for (let i = 0; i < rawLength; ++i) {
-        uInt8Array[i] = raw.charCodeAt(i);
-    }
-    const blob = new Blob([uInt8Array], { type: mimeType });
-
-    const metadata = {
-        name: fileName + '_' + Date.now(),
-        parents: [parentId || CONFIG.FOLDER_ID],
-        mimeType: mimeType
-    };
-
-    try {
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-        form.append('file', blob);
-
-        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-            method: 'POST',
-            headers: new Headers({ 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token }),
-            body: form
-        });
-        const result = await response.json();
-
-        if (result.error) throw new Error(result.error.message);
-
-        // Hacer el archivo público para lectura
-        await gapi.client.drive.permissions.create({
-            fileId: result.id,
-            resource: { role: 'reader', type: 'anyone' }
-        });
-
-        return `https://lh3.googleusercontent.com/u/0/d/${result.id}`;
-    } catch (err) {
-        console.error('Error subiendo imagen:', err);
-        throw err;
-    }
-}
+// La función uploadImage ha sido movida a cloudinary-api.js para evitar bloqueos de Google Drive.
 
 /**
  * Elimina un archivo o carpeta de Google Drive usando fetch
