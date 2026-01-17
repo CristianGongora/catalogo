@@ -46,6 +46,8 @@ async function syncFromDrive() {
     // Para lectura pública solo necesitamos gapi init con la API Key (ya hecho en initGapi)
     try {
         dataFileId = await getOrCreateDataFile();
+        if (!dataFileId) return; // Nada que sincronizar
+
         const content = await getFileContent(dataFileId);
         if (content) {
             // Normalizar categorías antiguas (string) a objetos si es necesario

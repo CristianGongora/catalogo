@@ -106,6 +106,13 @@ export async function getOrCreateDataFile() {
         if (files && files.length > 0) {
             return files[0].id;
         } else {
+            // Solo intentar crear si tenemos token (admin)
+            const token = gapi.auth.getToken();
+            if (!token) {
+                console.log("ℹ️ data.json no encontrado y no hay sesión iniciada. Saltando creación.");
+                return null;
+            }
+
             // Crear archivo inicial si no existe
             const initialData = JSON.stringify({ categories: [], products: [] });
 
@@ -122,7 +129,7 @@ export async function getOrCreateDataFile() {
 
             const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
                 method: 'POST',
-                headers: new Headers({ 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token }),
+                headers: new Headers({ 'Authorization': 'Bearer ' + token.access_token }),
                 body: form
             });
             const result = await response.json();
