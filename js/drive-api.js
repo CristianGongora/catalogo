@@ -42,7 +42,10 @@ export async function signIn() {
                 resolve(resp);
             },
         });
-        client.requestAccessToken({ prompt: 'consent' });
+
+        // Solo mostrar prompt si no hay token válido
+        // 'select_account' permite elegir cuenta pero reutiliza tokens existentes
+        client.requestAccessToken({ prompt: '' });
     });
 }
 

@@ -27,9 +27,17 @@ export async function initData() {
         await initGapi();
         // Solo intentamos login si hay sesión de admin activa
         if (localStorage.getItem('adminSession') === 'true') {
-            await signIn();
-            isDriveConnected = true;
-            await syncFromDrive();
+            // Intentar autenticación (usará token existente si está disponible)
+            try {
+                await signIn();
+                isDriveConnected = true;
+                console.log("✅ Conectado a Google Drive");
+                await syncFromDrive();
+            } catch (authErr) {
+                console.error("Error en autenticación de Drive:", authErr);
+                // Si falla la autenticación, continuamos en modo local
+                console.warn("Continuando en modo local sin sincronización con Drive");
+            }
         } else {
             // Cargar desde caché local si existe (opcional, por ahora demo)
             console.log("Modo visualizador: Usando datos locales.");
