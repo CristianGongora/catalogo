@@ -92,7 +92,8 @@ export async function getOrCreateDataFile() {
         const token = gapi.auth.getToken()?.access_token;
         let files = [];
 
-        if (token && gapi.client.drive) {
+        // Usar gapi client si está disponible (con o sin token), es mejor para CORS
+        if (gapi.client && gapi.client.drive) {
             const response = await gapi.client.drive.files.list({
                 q: q,
                 fields: 'files(id, name)',
@@ -100,7 +101,7 @@ export async function getOrCreateDataFile() {
             });
             files = response.result.files;
         } else {
-            // Modo público o sin token: fetch directo con API Key
+            // Modo de emergencia: fetch directo con API Key (solo para metadatos suele funcionar)
             const cb = `&cb=${Date.now()}`;
             const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&key=${CONFIG.API_KEY}${cb}`);
             const result = await response.json();
@@ -163,10 +164,9 @@ export async function getOrCreateDataFile() {
  * Descarga el contenido de un archivo por ID
  */
 export async function getFileContent(fileId) {
-    const token = gapi.auth.getToken()?.access_token;
-
-    // 1. Intentar con gapi client si somos Admin
-    if (token && gapi.client.drive) {
+    // 1. Intentar con gapi client siempre que esté disponible (con o sin token)
+    // El cliente gapi maneja CORS y API Key automáticamente.
+    if (gapi.client && gapi.client.drive) {
         try {
             const response = await gapi.client.drive.files.get({
                 fileId: fileId,
@@ -174,21 +174,30 @@ export async function getFileContent(fileId) {
             });
             return response.result;
         } catch (err) {
-            console.warn('gapi failed to get content, falling back to fetch:', err);
+            console.warn('gapi.client.drive.files.get ha fallado:', err);
+            if (err.status === 403) {
+                console.error("⛔ ERROR 403: El archivo data.json no es público. Verifica que la carpeta esté compartida como 'Cualquier persona con el enlace'.");
+            }
+            // Si el error no es crítico, intentamos el fallback de fetch
         }
     }
 
-    // 2. Modo público o fallback: fetch directo con API Key
+    // 2. Fallback: Fetch directo con API Key (A menudo bloqueado por CORS en navegadores para media)
     try {
         const cb = `&cb=${Date.now()}`;
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${CONFIG.API_KEY}${cb}`);
+        const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${CONFIG.API_KEY}${cb}`;
+        const response = await fetch(url);
+
         if (!response.ok) {
+            if (response.status === 403) {
+                throw new Error("ERROR_PERMISOS: El archivo no es accesible públicamente.");
+            }
             const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error?.message || 'Error al leer archivo vía fetch');
+            throw new Error(errData.error?.message || `Error HTTP ${response.status}`);
         }
         return await response.json();
     } catch (err) {
-        console.error('Error final al leer archivo:', err);
+        console.error('Error final al leer contenido:', err);
         throw err;
     }
 }
