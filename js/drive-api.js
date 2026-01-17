@@ -29,6 +29,27 @@ export async function initGapi() {
  * Autenticación mediante Google Identity Services (GIS)
  */
 export async function signIn() {
+    // Verificar si hay un token guardado y válido
+    const savedToken = localStorage.getItem('gdrive_token');
+    const tokenExpiry = localStorage.getItem('gdrive_token_expiry');
+
+    if (savedToken && tokenExpiry) {
+        const now = Date.now();
+        if (now < parseInt(tokenExpiry)) {
+            // Token aún válido, usarlo
+            console.log("✅ Usando token guardado");
+            tokenResponse = { access_token: savedToken };
+            gapi.client.setToken({ access_token: savedToken });
+            return Promise.resolve(tokenResponse);
+        } else {
+            // Token expirado, limpiar
+            console.log("⚠️ Token expirado, solicitando nuevo");
+            localStorage.removeItem('gdrive_token');
+            localStorage.removeItem('gdrive_token_expiry');
+        }
+    }
+
+    // No hay token válido, solicitar nuevo
     return new Promise((resolve, reject) => {
         const client = google.accounts.oauth2.initTokenClient({
             client_id: CONFIG.CLIENT_ID,
@@ -38,13 +59,24 @@ export async function signIn() {
                     reject(resp);
                     return;
                 }
+
+                // Guardar token en localStorage
                 tokenResponse = resp;
+                localStorage.setItem('gdrive_token', resp.access_token);
+
+                // Calcular expiración (los tokens normalmente duran 1 hora = 3600000 ms)
+                const expiryTime = Date.now() + (3600 * 1000); // 1 hora
+                localStorage.setItem('gdrive_token_expiry', expiryTime.toString());
+
+                // Configurar el token en gapi
+                gapi.client.setToken({ access_token: resp.access_token });
+
+                console.log("✅ Token nuevo guardado");
                 resolve(resp);
             },
         });
 
         // Solo mostrar prompt si no hay token válido
-        // 'select_account' permite elegir cuenta pero reutiliza tokens existentes
         client.requestAccessToken({ prompt: '' });
     });
 }
