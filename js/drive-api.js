@@ -111,7 +111,7 @@ export async function getOrCreateDataFile() {
             // Solo intentar crear si tenemos token (admin)
             const token = gapi.auth.getToken();
             if (!token) {
-                console.log("ℹ️ data.json no encontrado y no hay sesión iniciada. Saltando creación.");
+                console.warn("⚠️ data.json no encontrado en búsqueda pública. Asegúrate de que la carpeta de Drive esté compartida como 'Cualquier persona con el enlace'.");
                 return null;
             }
 
