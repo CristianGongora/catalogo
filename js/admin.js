@@ -1,6 +1,7 @@
 import { getCategories, getCategoryObjects, getAllProducts, addProductLocal, addCategoryLocal, deleteCategoryLocal, updateCategoryLocal, deleteProductLocal, updateProductLocal } from './data.js';
 import { renderCategories } from './ui.js';
 import { loadHome } from './app.js';
+import { CONFIG } from './config.js';
 
 export function checkAdminSession() {
     if (localStorage.getItem('adminSession') === 'true') {
@@ -84,7 +85,7 @@ function openLoginModal() {
 
     newBtnEnter.onclick = () => {
         const password = input.value;
-        if (password === 'admin') {
+        if (password === CONFIG.ADMIN_PASSWORD) {
             localStorage.setItem('adminSession', 'true');
             modal.hidden = true;
 
