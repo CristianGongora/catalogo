@@ -179,23 +179,30 @@ export async function updateFileContent(fileId, content) {
 }
 
 /**
- * Crea una carpeta en Google Drive
+ * Crea una carpeta en Google Drive usando fetch para mayor compatibilidad
  */
 export async function createFolder(folderName, parentId) {
     try {
-        const fileMetadata = {
+        const metadata = {
             name: folderName,
             mimeType: 'application/vnd.google-apps.folder',
             parents: [parentId || CONFIG.FOLDER_ID]
         };
 
-        const response = await gapi.client.drive.files.create({
-            resource: fileMetadata,
-            fields: 'id'
+        const response = await fetch('https://www.googleapis.com/api/drive/v3/files?fields=id', {
+            method: 'POST',
+            headers: new Headers({
+                'Authorization': 'Bearer ' + gapi.auth.getToken().access_token,
+                'Content-Type': 'application/json'
+            }),
+            body: JSON.stringify(metadata)
         });
 
-        console.log(`✅ Carpeta '${folderName}' creada:`, response.result.id);
-        return response.result.id;
+        const result = await response.json();
+        if (result.error) throw new Error(result.error.message);
+
+        console.log(`✅ Carpeta '${folderName}' creada:`, result.id);
+        return result.id;
     } catch (err) {
         console.error('Error creando carpeta:', err);
         throw err;
@@ -251,13 +258,23 @@ export async function uploadImage(base64Data, fileName, parentId) {
 }
 
 /**
- * Elimina un archivo o carpeta de Google Drive
+ * Elimina un archivo o carpeta de Google Drive usando fetch
  */
 export async function deleteFile(fileId) {
     try {
-        await gapi.client.drive.files.delete({
-            fileId: fileId
+        const response = await fetch(`https://www.googleapis.com/api/drive/v3/files/${fileId}`, {
+            method: 'DELETE',
+            headers: new Headers({
+                'Authorization': 'Bearer ' + gapi.auth.getToken().access_token
+            })
         });
+
+        if (!response.ok) {
+            // Intentar leer error si existe
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error?.message || 'Error al eliminar de Drive');
+        }
+
         console.log("✅ Eliminado de Drive:", fileId);
     } catch (err) {
         console.error('Error eliminando de Drive:', err);
