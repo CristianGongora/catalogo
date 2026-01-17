@@ -89,8 +89,10 @@ export async function getOrCreateDataFile() {
         const fileName = 'data.json';
         const q = `name = '${fileName}' and '${CONFIG.FOLDER_ID}' in parents and trashed = false`;
 
+        const token = gapi.auth.getToken()?.access_token;
         let files = [];
-        if (gapiInited && gapi.client.drive) {
+
+        if (token && gapi.client.drive) {
             const response = await gapi.client.drive.files.list({
                 q: q,
                 fields: 'files(id, name)',
@@ -98,7 +100,7 @@ export async function getOrCreateDataFile() {
             });
             files = response.result.files;
         } else {
-            // Cache busting for public fetch
+            // Modo público o sin token: fetch directo con API Key
             const cb = `&cb=${Date.now()}`;
             const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&key=${CONFIG.API_KEY}${cb}`);
             const result = await response.json();
@@ -161,24 +163,32 @@ export async function getOrCreateDataFile() {
  * Descarga el contenido de un archivo por ID
  */
 export async function getFileContent(fileId) {
-    try {
-        // Intentar con gapi client primero
-        if (gapiInited && gapi.client.drive) {
-            // El cliente gapi maneja sus propios encabezados, pero podemos intentar forzar cache-control
+    const token = gapi.auth.getToken()?.access_token;
+
+    // 1. Intentar con gapi client si somos Admin
+    if (token && gapi.client.drive) {
+        try {
             const response = await gapi.client.drive.files.get({
                 fileId: fileId,
                 alt: 'media'
             });
             return response.result;
-        } else {
-            // Fallback: Fetch directo usando API Key + Cache Busting
-            const cb = `&cb=${Date.now()}`;
-            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${CONFIG.API_KEY}${cb}`);
-            if (!response.ok) throw new Error('Error al leer archivo vía fetch');
-            return await response.json();
+        } catch (err) {
+            console.warn('gapi failed to get content, falling back to fetch:', err);
         }
+    }
+
+    // 2. Modo público o fallback: fetch directo con API Key
+    try {
+        const cb = `&cb=${Date.now()}`;
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${CONFIG.API_KEY}${cb}`);
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error?.message || 'Error al leer archivo vía fetch');
+        }
+        return await response.json();
     } catch (err) {
-        console.error('Error al leer archivo:', err);
+        console.error('Error final al leer archivo:', err);
         throw err;
     }
 }
