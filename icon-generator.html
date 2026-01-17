@@ -119,9 +119,9 @@
 
             img.onload = function () {
                 // Crear los tres íconos
-                createIcon(192, 80, 'icon-192.png', '192x192 (Ícono estándar)');
-                createIcon(512, 80, 'icon-512.png', '512x512 (Splash screen)');
-                createIcon(512, 70, 'icon-maskable-512.png', '512x512 Maskable (Zona segura)');
+                createIcon(192, 85, 'icon-192.png', '192x192 (Ícono estándar)');
+                createIcon(512, 85, 'icon-512.png', '512x512 (Splash screen)');
+                createIcon(512, 60, 'icon-maskable-512.png', '512x512 Maskable (Zona segura)');
 
                 status.innerHTML = '<span class="success">✅ ¡Íconos generados! Haz clic derecho en cada ícono → "Guardar imagen como..." y guárdalos con el nombre indicado en la carpeta assets/</span>';
             };
@@ -172,7 +172,21 @@
                 container.appendChild(title);
                 container.appendChild(previewCanvas);
 
-                // Link de descarga
+                // Dibujar círculo de zona segura en el preview (solo visual)
+                if (filename.includes('maskable')) {
+                    const ctxP = previewCanvas.getContext('2d');
+                    ctxP.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctxP.setLineDash([5, 5]);
+                    ctxP.beginPath();
+                    ctxP.arc(displaySize / 2, displaySize / 2, displaySize * 0.4, 0, Math.PI * 2);
+                    ctxP.stroke();
+                    const note = document.createElement('div');
+                    note.style.fontSize = '0.7rem';
+                    note.style.color = '#fff';
+                    note.textContent = '(El logo debe estar dentro del círculo punteado)';
+                    container.appendChild(note);
+                }
+
                 const downloadBtn = document.createElement('button');
                 downloadBtn.textContent = `⬇️ Descargar ${filename}`;
                 downloadBtn.onclick = function () {
