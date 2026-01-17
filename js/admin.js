@@ -235,7 +235,7 @@ function showManageProducts() {
     const listHtml = products.map(p => `
         <li style="padding:0.8rem; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
             <div style="display:flex; align-items:center; gap:1rem;">
-                <img src="${p.image}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
+                <img src="${p.image}" style="width:40px; height:40px; object-fit:contain; border-radius:4px; background:#fff; border:1px solid #eee;">
                 <div>
                     <div style="font-weight:500;">${p.title}</div>
                     <div style="font-size:0.8rem; color:var(--color-gold-dark); font-weight:500;">${formatPriceAdmin(p.price)}</div>
