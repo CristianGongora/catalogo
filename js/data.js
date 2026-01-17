@@ -12,11 +12,12 @@ let hasSuccessfullyLoaded = false;
  * Inicializa la persistencia con Supabase.
  */
 export async function initData() {
-    console.log("Inicializando datos con Supabase...");
+    console.log("🚀 Iniciando conexión con Supabase...");
 
     try {
-        // En Supabase la conexión es instantánea mediante fetch
+        console.log("📦 Solicitando catálogo...");
         const changes = await syncFromSupabase();
+        console.log("✅ Catálogo recibido y procesado.");
         isConnected = true;
 
         if (localStorage.getItem('adminSession') === 'true') {
@@ -32,7 +33,9 @@ export async function initData() {
 
 async function syncFromSupabase() {
     try {
+        console.log("📡 Llamando a fetchCatalog...");
         const content = await fetchCatalog();
+        console.log("📥 Datos crudos recibidos:", content ? "SI" : "NO");
         hasSuccessfullyLoaded = true;
 
         if (content) {

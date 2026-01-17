@@ -15,15 +15,22 @@ const HEADERS = {
 
 export async function fetchCatalog() {
     try {
-        // Obtenemos la primera fila de la tabla 'catalog'
+        console.log("🔗 URL Supabase:", `${BASE_URL}/catalog?select=data&limit=1`);
         const response = await fetch(`${BASE_URL}/catalog?select=data&limit=1`, {
             method: 'GET',
             headers: HEADERS
         });
 
-        if (!response.ok) throw new Error('Error al conectar con Supabase');
+        console.log("📡 Status Supabase:", response.status, response.statusText);
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error("❌ Error Supabase Detalle:", errText);
+            throw new Error('Error al conectar con Supabase: ' + response.status);
+        }
 
         const result = await response.json();
+        console.log("📊 Resultado JSON Supabase:", result);
         if (result && result.length > 0) {
             return result[0].data;
         }
