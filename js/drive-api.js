@@ -122,14 +122,15 @@ export async function getOrCreateDataFile() {
         if (gapi.client && gapi.client.drive) {
             const response = await withRetry(() => gapi.client.drive.files.list({
                 q: q,
-                fields: 'files(id, name)',
+                fields: 'files(id)', // Solo necesitamos el ID
                 spaces: 'drive'
             }));
             files = response.result.files;
         } else {
             // Modo de emergencia: fetch directo con API Key (solo para metadatos suele funcionar)
+            // Agregamos fields=files(id) para reducir el tamaño de la respuesta
             const cb = `&cb=${Date.now()}`;
-            const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&key=${CONFIG.API_KEY}${cb}`);
+            const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&key=${CONFIG.API_KEY}${cb}`);
             const result = await response.json();
             files = result.files;
         }
@@ -192,7 +193,7 @@ export async function getOrCreateDataFile() {
 export async function getFileContent(fileId) {
     const token = gapi.auth.getToken()?.access_token;
 
-    // RUTA 1: GAPI Client (Ideal para Admins)
+    // RUTA 1: GAPI Client (Ideal para Admins y usuarios autenticados)
     if (token && gapi.client.drive) {
         try {
             const response = await withRetry(() => gapi.client.drive.files.get({
@@ -201,24 +202,12 @@ export async function getFileContent(fileId) {
             }));
             return response.result;
         } catch (err) {
-            console.warn('Ruta 1 (GAPI Admin) fallida, intentando rutas públicas...', err);
+            console.warn('Ruta 1 (GAPI Admin) fallida, intentando ruta pública...', err);
         }
     }
 
-    // RUTA 2: Enlace UC (Altísima compatibilidad para archivos públicos en navegadores)
-    // Este endpoint suele saltarse bloqueos de CORS que el API v3 estricto impone.
-    try {
-        const ucUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
-        // No añadimos API Key aquí ya que este endpoint es para acceso puramente público/compartido.
-        const response = await fetch(ucUrl, { mode: 'cors', credentials: 'omit' });
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (err) {
-        console.warn('Ruta 2 (UC Link) fallida...', err);
-    }
-
-    // RUTA 3: Fetch Directo API v3 (Limpio)
+    // RUTA 2: Fetch Directo API v3 (Modo Público)
+    // Eliminamos la ruta docs.google.com/uc por ser inestable y propensa a bloqueos
     try {
         const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${CONFIG.API_KEY}`;
         const response = await fetch(url, {
@@ -230,17 +219,9 @@ export async function getFileContent(fileId) {
             return await response.json();
         }
 
-        if (response.status === 403) {
-            console.error("⛔ ERROR 403 PERSISTENTE. Causas críticas:\n" +
-                "1. API Key restringida a dominios que NO incluyen: " + window.location.hostname + "\n" +
-                "2. La 'Drive API' no está habilitada en Google Cloud.\n" +
-                "3. El archivo NO tiene permiso de 'Lector' para 'Cualquier persona con el enlace'.");
-        }
-
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error?.message || `Error HTTP ${response.status}`);
+        throw new Error(`Error HTTP ${response.status}`);
     } catch (err) {
-        console.error('Error final en todas las rutas de lectura:', err);
+        console.error('Error final descargando data.json:', err);
         throw err;
     }
 }

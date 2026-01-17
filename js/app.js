@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initData();
         // Inicializar navegación solo DESPUÉS de cargar datos
         initNavigation();
-        // Iniciar sincronización de fondo (30 segundos)
+        // Iniciar sincronización de fondo (2 minutos)
         startBackgroundSync();
     } catch (error) {
         console.error("Error inicializando app:", error);
@@ -35,12 +35,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function startBackgroundSync() {
     setInterval(async () => {
-        // Solo sincronizar si no estamos en medio de un submit o carga pesada
-        const hasChanges = await initData(); // initData llama a syncFromDrive
+        // No sincronizar si somos admin (para evitar colisiones al editar)
+        const isAdmin = localStorage.getItem('adminSession') === 'true';
+        if (isAdmin) return;
+
+        console.log("🔄 Ejecutando sincronización de fondo...");
+        const hasChanges = await initData();
         if (hasChanges) {
             refreshCurrentView();
         }
-    }, 30000); // 30 segundos
+    }, 120000); // 2 minutos
 }
 
 function refreshCurrentView() {
