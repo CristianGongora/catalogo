@@ -1,12 +1,17 @@
 import { initGapi, signIn, getOrCreateDataFile, getFileContent, updateFileContent, uploadImage } from './drive-api.js';
 import { CONFIG } from './config.js';
 
-let cachedCategories = ['Aretes', 'Cadenas', 'Candongas', 'Pulseras', 'Tobilleras'];
-let cachedProducts = [
-    { id: 1, title: 'Aretes de Oro 18k', category: 'Aretes', price: '$150.000', description: 'Aretes elegantes con diseño floral.', image: 'https://placehold.co/400x400/D4AF37/white?text=Aretes' },
-    { id: 2, title: 'Cadena Cubana', category: 'Cadenas', price: '$450.000', description: 'Cadena tejido cubano, alta calidad.', image: 'https://placehold.co/400x400/2C2C2C/white?text=Cadena' },
-    { id: 3, title: 'Candongas Medianas', category: 'Candongas', price: '$120.000', description: 'Candongas clásicas para uso diario.', image: 'https://placehold.co/400x400/F4E5B2/2C2C2C?text=Candongas' }
+// Categorías iniciales como objetos { name, id }
+let cachedCategories = [
+    { name: 'Aretes', id: null },
+    { name: 'Cadenas', id: null },
+    { name: 'Candongas', id: null },
+    { name: 'Pulseras', id: null },
+    { name: 'Tobilleras', id: null }
 ];
+
+let cachedProducts = [];
+
 
 let dataFileId = null;
 let isDriveConnected = false;
@@ -53,8 +58,12 @@ async function syncFromDrive() {
         dataFileId = await getOrCreateDataFile();
         const content = await getFileContent(dataFileId);
         if (content) {
-            cachedCategories = content.categories || cachedCategories;
+            // Normalizar categorías antiguas (string) a objetos si es necesario
+            cachedCategories = (content.categories || cachedCategories).map(cat =>
+                typeof cat === 'string' ? { name: cat, id: null } : cat
+            );
             cachedProducts = content.products || cachedProducts;
+            console.log("✅ Datos sincronizados desde Drive");
         }
     } catch (err) {
         console.error("Error sincronizando desde Drive:", err);
@@ -74,6 +83,13 @@ async function saveToDrive() {
 }
 
 export function getCategories() {
+    // Si la interfaz espera strings, mapeamos para compatibilidad si es necesario, 
+    // pero idealmente devolvemos el objeto para tener el ID.
+    return cachedCategories.map(c => c.name);
+}
+
+// Nueva función para obtener el objeto completo de categoría
+export function getCategoryObjects() {
     return cachedCategories;
 }
 
@@ -91,7 +107,11 @@ export async function addProductLocal(product) {
     // Si hay imagen base64 y Drive está conectado, subirla primero
     if (product.image && product.image.startsWith('data:image') && isDriveConnected) {
         try {
-            const driveImageUrl = await uploadImage(product.image, product.title);
+            // Buscar el Folder ID de la categoría
+            const categoryObj = cachedCategories.find(c => c.name === product.category);
+            const parentId = categoryObj ? categoryObj.id : null;
+
+            const driveImageUrl = await uploadImage(product.image, product.title, parentId);
             product.image = driveImageUrl;
         } catch (err) {
             console.error("Error subiendo imagen a Drive, se usará base64 local:", err);
@@ -123,22 +143,32 @@ export async function updateProductLocal(id, updatedData) {
     }
 }
 
-export async function addCategoryLocal(category) {
-    if (!cachedCategories.includes(category)) {
-        cachedCategories.push(category);
+export async function addCategoryLocal(categoryName) {
+    if (!cachedCategories.find(c => c.name === categoryName)) {
+        let folderId = null;
+        if (isDriveConnected) {
+            try {
+                folderId = await createFolder(categoryName);
+            } catch (err) {
+                console.error("Error creando carpeta para la categoría:", err);
+            }
+        }
+        cachedCategories.push({ name: categoryName, id: folderId });
         await saveToDrive();
     }
 }
 
-export async function deleteCategoryLocal(category) {
-    cachedCategories = cachedCategories.filter(c => c !== category);
+export async function deleteCategoryLocal(categoryName) {
+    cachedCategories = cachedCategories.filter(c => c.name !== categoryName);
     await saveToDrive();
 }
 
 export async function updateCategoryLocal(oldName, newName) {
-    const index = cachedCategories.indexOf(oldName);
+    const index = cachedCategories.findIndex(c => c.name === oldName);
     if (index !== -1) {
-        cachedCategories[index] = newName;
+        cachedCategories[index].name = newName;
+        // Nota: El ID de la carpeta se mantiene igual, solo cambia el nombre visual en la app.
+        // Podríamos renombrar la carpeta en Drive también si fuera necesario.
         cachedProducts.forEach(p => {
             if (p.category === oldName) p.category = newName;
         });

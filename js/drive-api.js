@@ -101,19 +101,29 @@ export async function getOrCreateDataFile() {
         } else {
             // Crear archivo inicial si no existe
             const initialData = JSON.stringify({ categories: [], products: [] });
-            const fileMetadata = {
+
+            // Usamos multipart para asegurar que el nombre se asigne correctamente
+            const metadata = {
                 name: fileName,
                 parents: [CONFIG.FOLDER_ID],
                 mimeType: 'application/json'
             };
-            const res = await gapi.client.drive.files.create({
-                resource: fileMetadata,
-                media: {
-                    mimeType: 'application/json',
-                    body: initialData
-                }
+
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([initialData], { type: 'application/json' }));
+
+            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+                method: 'POST',
+                headers: new Headers({ 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token }),
+                body: form
             });
-            return res.result.id;
+            const result = await response.json();
+
+            if (result.error) throw new Error(result.error.message);
+
+            console.log("✅ data.json creado con ID:", result.id);
+            return result.id;
         }
     } catch (err) {
         console.error('Error gestionando data.json:', err);
@@ -138,16 +148,30 @@ export async function getFileContent(fileId) {
 }
 
 /**
- * Actualiza el contenido de un archivo JSON
+ * Actualiza el contenido de un archivo JSON usando multipart para robustez
  */
 export async function updateFileContent(fileId, content) {
     try {
-        await gapi.client.request({
-            path: `/upload/drive/v3/files/${fileId}`,
+        const metadata = {
+            mimeType: 'application/json'
+        };
+
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', new Blob([JSON.stringify(content)], { type: 'application/json' }));
+
+        const response = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`, {
             method: 'PATCH',
-            params: { uploadType: 'media' },
-            body: JSON.stringify(content)
+            headers: new Headers({ 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token }),
+            body: form
         });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error?.message || 'Error al actualizar archivo');
+        }
+
+        console.log("✅ data.json actualizado en Drive");
     } catch (err) {
         console.error('Error actualizando archivo:', err);
         throw err;
@@ -155,9 +179,33 @@ export async function updateFileContent(fileId, content) {
 }
 
 /**
- * Sube una imagen Base64 a Drive y retorna su URL pública (enrutada para visualización)
+ * Crea una carpeta en Google Drive
  */
-export async function uploadImage(base64Data, fileName) {
+export async function createFolder(folderName, parentId) {
+    try {
+        const fileMetadata = {
+            name: folderName,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [parentId || CONFIG.FOLDER_ID]
+        };
+
+        const response = await gapi.client.drive.files.create({
+            resource: fileMetadata,
+            fields: 'id'
+        });
+
+        console.log(`✅ Carpeta '${folderName}' creada:`, response.result.id);
+        return response.result.id;
+    } catch (err) {
+        console.error('Error creando carpeta:', err);
+        throw err;
+    }
+}
+
+/**
+ * Sube una imagen Base64 a Drive y retorna su URL pública
+ */
+export async function uploadImage(base64Data, fileName, parentId) {
     // Extraer tipo y limpiar base64
     const parts = base64Data.split(';base64,');
     const mimeType = parts[0].split(':')[1];
@@ -171,12 +219,11 @@ export async function uploadImage(base64Data, fileName) {
 
     const metadata = {
         name: fileName + '_' + Date.now(),
-        parents: [CONFIG.FOLDER_ID],
+        parents: [parentId || CONFIG.FOLDER_ID],
         mimeType: mimeType
     };
 
     try {
-        // En Drive v3 la subida multipart con gapi.client es compleja, usamos fetch para simplicidad y robustez
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', blob);
@@ -188,15 +235,15 @@ export async function uploadImage(base64Data, fileName) {
         });
         const result = await response.json();
 
-        // Hacer el archivo público para lectura (requerido para el catálogo)
+        if (result.error) throw new Error(result.error.message);
+
+        // Hacer el archivo público para lectura
         await gapi.client.drive.permissions.create({
             fileId: result.id,
             resource: { role: 'reader', type: 'anyone' }
         });
 
-        // Retornar URL de vista previa directa (thumbnailLink es pequeño, usamos webContentLink o similar)
-        // Para visualización directa en <img> usamos la API de Drive con un proxy o el ID directamente
-        return `https://lh3.googleusercontent.com/u/0/d/${result.id}`; // Hack común para Drive Images o usaría el ID
+        return `https://lh3.googleusercontent.com/u/0/d/${result.id}`;
     } catch (err) {
         console.error('Error subiendo imagen:', err);
         throw err;
