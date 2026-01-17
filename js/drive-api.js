@@ -176,9 +176,10 @@ export async function getFileContent(fileId) {
         } catch (err) {
             console.warn('gapi.client.drive.files.get ha fallado:', err);
             if (err.status === 403) {
-                console.error("⛔ ERROR 403: El archivo data.json no es público. Verifica que la carpeta esté compartida como 'Cualquier persona con el enlace'.");
+                const msg = "⛔ ERROR 403: Acceso Denegado. El archivo data.json NO es público o la API Key está restringida. Verifica los permisos de la carpeta en Drive.";
+                console.error(msg);
+                // Si somos admin y falla, es muy raro, posiblemente token inválido
             }
-            // Si el error no es crítico, intentamos el fallback de fetch
         }
     }
 
@@ -226,20 +227,34 @@ export async function updateFileContent(fileId, content) {
             throw new Error(err.error?.message || 'Error al actualizar archivo');
         }
 
-        // Asegurar que sea público si lo estamos actualizando como Admin (gapi client para esto si funciona)
-        try {
-            if (gapiInited && gapi.client.drive) {
-                await gapi.client.drive.permissions.create({
-                    fileId: fileId,
-                    resource: { role: 'reader', type: 'anyone' }
-                });
-            }
-        } catch (pErr) { /* ignorable */ }
+        // Asegurar que sea público si lo estamos actualizando como Admin
+        await ensurePublicPermission(fileId);
 
         console.log("✅ data.json actualizado correctamente");
     } catch (err) {
         console.error('Error actualizando archivo:', err);
         throw err;
+    }
+}
+
+/**
+ * Asegura que un archivo sea público para lectura
+ */
+export async function ensurePublicPermission(fileId) {
+    try {
+        const token = gapi.auth.getToken()?.access_token;
+        if (!token || !gapi.client.drive) return;
+
+        await gapi.client.drive.permissions.create({
+            fileId: fileId,
+            resource: {
+                role: 'reader',
+                type: 'anyone'
+            }
+        });
+        console.log(`✅ Permisos públicos asegurados para: ${fileId}`);
+    } catch (err) {
+        console.warn(`No se pudieron actualizar los permisos para ${fileId}:`, err);
     }
 }
 
