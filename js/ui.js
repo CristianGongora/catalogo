@@ -1,5 +1,10 @@
 import { CONFIG } from './config.js';
 
+let modalState = {
+    products: [],
+    currentIndex: -1
+};
+
 // Utilitario para formatear precios como COP
 function formatPrice(value) {
     if (!value) return 'Consultar';
@@ -76,7 +81,7 @@ export function renderProducts(products, container) {
         return;
     }
 
-    products.forEach(prod => {
+    products.forEach((prod, index) => {
         const card = document.createElement('div');
         card.className = 'card';
 
@@ -92,53 +97,117 @@ export function renderProducts(products, container) {
             </div>
         `;
 
-        card.addEventListener('click', () => showProductModal(prod));
+        card.addEventListener('click', () => {
+            modalState.products = products;
+            modalState.currentIndex = index;
+            showProductModal();
+        });
         container.appendChild(card);
     });
 }
 
-function showProductModal(product) {
+function showProductModal() {
     const modal = document.getElementById('productModal');
     const body = document.getElementById('modalBody');
 
-    const imgSrc = product.image || 'assets/placeholder.png';
+    const updateModalContent = () => {
+        const product = modalState.products[modalState.currentIndex];
+        const imgSrc = product.image || 'assets/placeholder.png';
+        const phone = typeof CONFIG !== 'undefined' && CONFIG.WHATSAPP_PHONE ? CONFIG.WHATSAPP_PHONE : 'YOUR_PHONE';
 
-    const phone = typeof CONFIG !== 'undefined' && CONFIG.WHATSAPP_PHONE ? CONFIG.WHATSAPP_PHONE : 'YOUR_PHONE';
+        let msg = `Hola, me interesa este producto:%0A`;
+        msg += `*${product.title}*`;
+        if (product.price) msg += `%0A💰 Precio: ${product.price}`;
+        if (product.category) msg += `%0A📂 Categoría: ${product.category}`;
+        if (imgSrc.startsWith('http')) {
+            msg += `%0A🖼️ Imagen de referencia: ${encodeURIComponent(imgSrc)}`;
+        }
 
-    // Construir mensaje detallado
-    let msg = `Hola, me interesa este producto:%0A`;
-    msg += `*${product.title}*`; // Negrita
-    if (product.price) msg += `%0A💰 Precio: ${product.price}`;
-    if (product.category) msg += `%0A📂 Categoría: ${product.category}`;
+        body.innerHTML = `
+            <div class="modal-nav-container">
+                <button class="modal-nav-btn prev-btn" id="prevProduct">❮</button>
+                <div class="modal-product-info">
+                    <img src="${imgSrc}" class="modal-image">
+                    <h2 style="font-family: var(--font-heading); margin-bottom: 0.5rem;">${product.title}</h2>
+                    <div style="color: var(--color-gold-dark); font-weight: 500; font-size: 1.2rem; margin-bottom: 0.5rem;">${formatPrice(product.price)}</div>
+                    <p style="color: var(--color-gray); margin-bottom: 1.5rem;">${product.description || 'Sin descripción'}</p>
+                    <a href="https://wa.me/${phone}?text=${msg}" target="_blank" class="btn btn-whatsapp">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12.031 6.172c-2.32 0-4.518.953-6.193 2.627-1.675 1.675-2.628 3.873-2.628 6.193 0 .914.149 1.807.438 2.651l-1.642 6.007 6.132-1.611c.884.343 1.83.524 2.809.524 2.32 0 4.518-.953 6.193-2.627 1.675-1.675 2.628-3.873 2.628-6.193 0-2.32-.953-4.518-2.628-6.193-1.675-1.674-3.873-2.627-6.193-2.627zm5.541 12.385c-1.48 1.48-3.447 2.295-5.541 2.295-.873 0-1.731-.144-2.547-.428l-.364-.127-3.666.963.978-3.58-.142-.234c-.26-.426-.441-.892-.538-1.378-.052-.258-.291-.433-.538-.346-.247.087-.384.354-.306.611.116.58.333 1.141.643 1.652l-.464 1.697 1.696-.464c.732.328 1.53.501 2.342.501 1.91 0 3.704-.744 5.051-2.091 1.347-1.348 2.091-3.141 2.091-5.051 0-1.91-.744-3.703-2.091-5.051-1.347-1.347-3.141-2.091-5.051-2.091-1.91 0-3.704.744-5.051 2.091-1.347 1.348-2.091 3.141-2.091 5.051 0 .614.079 1.214.234 1.791.066.251-.082.507-.333.573-.25.068-.506-.084-.573-.333-.186-.694-.282-1.416-.282-2.152 0-2.321.953-4.518 2.628-6.193s3.873-2.628 6.193-2.628c2.32 0 4.518.953 6.193 2.628 1.675 1.675 2.628 3.873 2.628 6.193 0 1.91-.744 3.703-2.091 5.051z"/>
+                            <path d="M17.523 15.341c-.225-.112-1.332-.657-1.539-.732-.207-.074-.358-.112-.511.112-.152.225-.584.732-.716.882-.132.15-.264.169-.489.056-.225-.113-.951-.351-1.812-1.117-.671-.599-1.124-1.338-1.256-1.563-.132-.224-.014-.346.099-.458.102-.101.225-.263.338-.393.113-.132.15-.225.225-.376.075-.15.037-.282-.019-.393-.056-.113-.511-1.236-.7-1.69-.184-.442-.37-.381-.511-.388-.132-.007-.284-.008-.435-.008-.152 0-.399.056-.607.282-.207.225-.792.775-.792 1.89s.81 2.197.923 2.348c.113.15 1.594 2.433 3.861 3.411.539.233.959.372 1.288.477.545.173 1.04.149 1.431.09.435-.066 1.331-.544 1.519-1.07.188-.526.188-.976.132-1.07-.056-.094-.207-.15-.432-.262z"/>
+                        </svg>
+                        <span>Consultar por WhatsApp</span>
+                    </a>
+                </div>
+                <button class="modal-nav-btn next-btn" id="nextProduct">❯</button>
+            </div>
+        `;
 
-    // Solo agregar link de imagen si es una URL http/https (evitar Base64 largos)
-    if (imgSrc.startsWith('http')) {
-        msg += `%0A🖼️ Imagen de referencia: ${encodeURIComponent(imgSrc)}`;
-    }
+        // Re-adjuntar eventos de navegación
+        document.getElementById('prevProduct').onclick = (e) => {
+            e.stopPropagation();
+            navigateModal(-1);
+        };
+        document.getElementById('nextProduct').onclick = (e) => {
+            e.stopPropagation();
+            navigateModal(1);
+        };
 
-    body.innerHTML = `
-        <div style="text-align: center;">
-            <img src="${imgSrc}" class="modal-image">
-            <h2 style="font-family: var(--font-heading); margin-bottom: 0.5rem;">${product.title}</h2>
-            <div style="color: var(--color-gold-dark); font-weight: 500; font-size: 1.2rem; margin-bottom: 0.5rem;">${formatPrice(product.price)}</div>
-            <p style="color: var(--color-gray); margin-bottom: 1.5rem;">${product.description || 'Sin descripción'}</p>
-            <a href="https://wa.me/${phone}?text=${msg}" target="_blank" class="btn btn-whatsapp" style="display:inline-flex; align-items:center; justify-content:center; gap:0.7rem; text-decoration:none; padding: 0.8rem 1.5rem; width: 100%; box-sizing: border-box; border-radius: 50px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12.031 6.172c-2.32 0-4.518.953-6.193 2.627-1.675 1.675-2.628 3.873-2.628 6.193 0 .914.149 1.807.438 2.651l-1.642 6.007 6.132-1.611c.884.343 1.83.524 2.809.524 2.32 0 4.518-.953 6.193-2.627 1.675-1.675 2.628-3.873 2.628-6.193 0-2.32-.953-4.518-2.628-6.193-1.675-1.674-3.873-2.627-6.193-2.627zm5.541 12.385c-1.48 1.48-3.447 2.295-5.541 2.295-.873 0-1.731-.144-2.547-.428l-.364-.127-3.666.963.978-3.58-.142-.234c-.26-.426-.441-.892-.538-1.378-.052-.258-.291-.433-.538-.346-.247.087-.384.354-.306.611.116.58.333 1.141.643 1.652l-.464 1.697 1.696-.464c.732.328 1.53.501 2.342.501 1.91 0 3.704-.744 5.051-2.091 1.347-1.348 2.091-3.141 2.091-5.051 0-1.91-.744-3.703-2.091-5.051-1.347-1.347-3.141-2.091-5.051-2.091-1.91 0-3.704.744-5.051 2.091-1.347 1.348-2.091 3.141-2.091 5.051 0 .614.079 1.214.234 1.791.066.251-.082.507-.333.573-.25.068-.506-.084-.573-.333-.186-.694-.282-1.416-.282-2.152 0-2.321.953-4.518 2.628-6.193s3.873-2.628 6.193-2.628c2.32 0 4.518.953 6.193 2.628 1.675 1.675 2.628 3.873 2.628 6.193 0 1.91-.744 3.703-2.091 5.051z"/>
-                    <path d="M17.523 15.341c-.225-.112-1.332-.657-1.539-.732-.207-.074-.358-.112-.511.112-.152.225-.584.732-.716.882-.132.15-.264.169-.489.056-.225-.113-.951-.351-1.812-1.117-.671-.599-1.124-1.338-1.256-1.563-.132-.224-.014-.346.099-.458.102-.101.225-.263.338-.393.113-.132.15-.225.225-.376.075-.15.037-.282-.019-.393-.056-.113-.511-1.236-.7-1.69-.184-.442-.37-.381-.511-.388-.132-.007-.284-.008-.435-.008-.152 0-.399.056-.607.282-.207.225-.792.775-.792 1.89s.81 2.197.923 2.348c.113.15 1.594 2.433 3.861 3.411.539.233.959.372 1.288.477.545.173 1.04.149 1.431.09.435-.066 1.331-.544 1.519-1.07.188-.526.188-.976.132-1.07-.056-.094-.207-.15-.432-.262z"/>
-                </svg>
-                <span>Consultar por WhatsApp</span>
-            </a>
-        </div>
-    `;
+        // Ocultar flechas si no hay más productos
+        if (modalState.currentIndex <= 0) document.getElementById('prevProduct').style.visibility = 'hidden';
+        if (modalState.currentIndex >= modalState.products.length - 1) document.getElementById('nextProduct').style.visibility = 'hidden';
+    };
 
+    const navigateModal = (direction) => {
+        const newIndex = modalState.currentIndex + direction;
+        if (newIndex >= 0 && newIndex < modalState.products.length) {
+            modalState.currentIndex = newIndex;
+            updateModalContent();
+        }
+    };
+
+    updateModalContent();
     modal.hidden = false;
 
+    // Gestión de gestos (Swipe)
+    let touchstartX = 0;
+    let touchendX = 0;
+
+    modal.ontouchstart = (e) => {
+        touchstartX = e.changedTouches[0].screenX;
+    };
+
+    modal.ontouchend = (e) => {
+        touchendX = e.changedTouches[0].screenX;
+        handleSwipe();
+    };
+
+    const handleSwipe = () => {
+        const threshold = 50;
+        if (touchendX < touchstartX - threshold) {
+            navigateModal(1); // Swipe left -> Next
+        }
+        if (touchendX > touchstartX + threshold) {
+            navigateModal(-1); // Swipe right -> Previous
+        }
+    };
+
+    // Close modal settings
     modal.querySelector('.close-modal').onclick = () => {
         modal.hidden = true;
     };
 
     modal.onclick = (e) => {
         if (e.target === modal) modal.hidden = true;
-    }
+    };
+
+    // Keyboard navigation
+    const handleKeyDown = (e) => {
+        if (modal.hidden) return;
+        if (e.key === 'ArrowLeft') navigateModal(-1);
+        if (e.key === 'ArrowRight') navigateModal(1);
+        if (e.key === 'Escape') modal.hidden = true;
+    };
+    document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
 }
