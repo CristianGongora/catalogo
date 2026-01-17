@@ -171,6 +171,11 @@ function showAddProductForm() {
                 </div>
 
                 <div style="margin-bottom: 1rem;">
+                    <label style="display:block; margin-bottom:0.5rem">Precio</label>
+                    <input type="text" name="price" placeholder="Ej: $150.000" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
+                </div>
+
+                <div style="margin-bottom: 1rem;">
                     <label style="display:block; margin-bottom:0.5rem">Imagen</label>
                     <input type="file" name="image" accept="image/*" required style="width:100%;">
                 </div>
@@ -198,6 +203,7 @@ async function handleProductSubmit(e) {
         const product = {
             title: form.title.value,
             category: form.category.value,
+            price: form.price.value,
             description: form.description.value,
             image: event.target.result
         };
@@ -219,6 +225,7 @@ function showManageProducts() {
                 <img src="${p.image}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
                 <div>
                     <div style="font-weight:500;">${p.title}</div>
+                    <div style="font-size:0.8rem; color:var(--color-gold-dark); font-weight:500;">${p.price || 'Sin precio'}</div>
                     <div style="font-size:0.8rem; color:#666;">${p.category}</div>
                 </div>
             </div>
@@ -264,6 +271,7 @@ function openEditProductModal(product) {
 
     document.getElementById('editProdId').value = product.id;
     document.getElementById('editProdTitle').value = product.title;
+    document.getElementById('editProdPrice').value = product.price || '';
     document.getElementById('editProdDesc').value = product.description || '';
 
     const catSelect = document.getElementById('editProdCategory');
@@ -292,6 +300,7 @@ function openEditProductModal(product) {
         const updatedData = {
             title: document.getElementById('editProdTitle').value,
             category: document.getElementById('editProdCategory').value,
+            price: document.getElementById('editProdPrice').value,
             description: document.getElementById('editProdDesc').value,
             image: newImage
         };
