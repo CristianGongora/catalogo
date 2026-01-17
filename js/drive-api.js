@@ -179,26 +179,20 @@ export async function getFileContent(fileId) {
         }
     }
 
-    // 2. Modo público: fetch directo con API Key (Mejorado para evitar CORS y 403)
+    // 2. Modo público: fetch directo con API Key (Sin headers para evitar preflight CORS)
     try {
         const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${CONFIG.API_KEY}`;
 
-        // Usamos credentials: 'omit' para que Google no se confunda con cookies de sesión
-        // y pasamos la API Key también en el header por si el query param es ignorado
         const response = await fetch(url, {
-            credentials: 'omit',
-            headers: {
-                'X-Goog-Api-Key': CONFIG.API_KEY
-            }
+            mode: 'cors',
+            credentials: 'omit'
         });
 
         if (!response.ok) {
             if (response.status === 403) {
-                console.error("⛔ ERROR 403 DETECTADO. Posibles causas:\n" +
-                    "1. La API Key en config.js tiene 'Restricciones de aplicación' (HTTP referrers) que NO incluyen tu dominio actual.\n" +
-                    "2. La 'Drive API' no está habilitada en tu proyecto de Google Cloud Console.\n" +
-                    "3. El archivo data.json no tiene permisos de Lector para 'Cualquier persona con el enlace'.");
-                throw new Error("ERROR_PERMISOS: Acceso denegado al catálogo.");
+                console.error("⛔ ERROR 403: Google ha denegado el acceso al archivo.\n" +
+                    "CAUSA PROBABLE: Tu API Key tiene restricciones de 'HTTP Referrer' que no incluyen este dominio.\n" +
+                    "SOLUCIÓN: Ve a Google Cloud Console -> Credenciales -> Tu API Key -> Añade a sitios permitidos: catalogo-ruddy-alpha.vercel.app/*");
             }
             const errData = await response.json().catch(() => ({}));
             throw new Error(errData.error?.message || `Error HTTP ${response.status}`);
