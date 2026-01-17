@@ -85,56 +85,57 @@ export async function signIn() {
  * Busca o Crea el archivo data.json en la carpeta configuradora
  */
 export async function getOrCreateDataFile() {
-    const fileName = 'data.json';
-    const q = `name = '${fileName}' and '${CONFIG.FOLDER_ID}' in parents and trashed = false`;
+    try {
+        const fileName = 'data.json';
+        const q = `name = '${fileName}' and '${CONFIG.FOLDER_ID}' in parents and trashed = false`;
 
-    let files = [];
-    if (gapiInited && gapi.client.drive) {
-        const response = await gapi.client.drive.files.list({
-            q: q,
-            fields: 'files(id, name)',
-            spaces: 'drive'
-        });
-        files = response.result.files;
-    } else {
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&key=${CONFIG.API_KEY}`);
-        const result = await response.json();
-        files = result.files;
+        let files = [];
+        if (gapiInited && gapi.client.drive) {
+            const response = await gapi.client.drive.files.list({
+                q: q,
+                fields: 'files(id, name)',
+                spaces: 'drive'
+            });
+            files = response.result.files;
+        } else {
+            const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&key=${CONFIG.API_KEY}`);
+            const result = await response.json();
+            files = result.files;
+        }
+
+        if (files && files.length > 0) {
+            return files[0].id;
+        } else {
+            // Crear archivo inicial si no existe
+            const initialData = JSON.stringify({ categories: [], products: [] });
+
+            // Usamos multipart para asegurar que el nombre se asigne correctamente
+            const metadata = {
+                name: fileName,
+                parents: [CONFIG.FOLDER_ID],
+                mimeType: 'application/json'
+            };
+
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([initialData], { type: 'application/json' }));
+
+            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+                method: 'POST',
+                headers: new Headers({ 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token }),
+                body: form
+            });
+            const result = await response.json();
+
+            if (result.error) throw new Error(result.error.message);
+
+            console.log("✅ data.json creado con ID:", result.id);
+            return result.id;
+        }
+    } catch (err) {
+        console.error('Error gestionando data.json:', err);
+        throw err;
     }
-
-    if (files && files.length > 0) {
-        return files[0].id;
-    } else {
-        // Crear archivo inicial si no existe
-        const initialData = JSON.stringify({ categories: [], products: [] });
-
-        // Usamos multipart para asegurar que el nombre se asigne correctamente
-        const metadata = {
-            name: fileName,
-            parents: [CONFIG.FOLDER_ID],
-            mimeType: 'application/json'
-        };
-
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-        form.append('file', new Blob([initialData], { type: 'application/json' }));
-
-        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-            method: 'POST',
-            headers: new Headers({ 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token }),
-            body: form
-        });
-        const result = await response.json();
-
-        if (result.error) throw new Error(result.error.message);
-
-        console.log("✅ data.json creado con ID:", result.id);
-        return result.id;
-    }
-} catch (err) {
-    console.error('Error gestionando data.json:', err);
-    throw err;
-}
 }
 
 /**

@@ -118,10 +118,10 @@
             img.src = 'assets/logo.jpg';
 
             img.onload = function () {
-                // Crear los tres íconos
-                createIcon(192, 85, 'icon-192.png', '192x192 (Ícono estándar)');
-                createIcon(512, 85, 'icon-512.png', '512x512 (Splash screen)');
-                createIcon(512, 60, 'icon-maskable-512.png', '512x512 Maskable (Zona segura)');
+                // Crear los tres íconos con tamaños súper seguros
+                createIcon(192, 75, 'icon-192.png', '192x192 (Ícono estándar)');
+                createIcon(512, 75, 'icon-512.png', '512x512 (Splash screen)');
+                createIcon(512, 50, 'icon-maskable-512.png', '512x512 Maskable (Zona segura)');
 
                 status.innerHTML = '<span class="success">✅ ¡Íconos generados! Haz clic derecho en cada ícono → "Guardar imagen como..." y guárdalos con el nombre indicado en la carpeta assets/</span>';
             };
@@ -178,7 +178,8 @@
                     ctxP.strokeStyle = 'rgba(255, 255, 255, 0.5)';
                     ctxP.setLineDash([5, 5]);
                     ctxP.beginPath();
-                    ctxP.arc(displaySize / 2, displaySize / 2, displaySize * 0.4, 0, Math.PI * 2);
+                    // El radio de la zona segura oficial es el 38.5% del tamaño total
+                    ctxP.arc(displaySize / 2, displaySize / 2, displaySize * 0.385, 0, Math.PI * 2);
                     ctxP.stroke();
                     const note = document.createElement('div');
                     note.style.fontSize = '0.7rem';
