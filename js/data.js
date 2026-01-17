@@ -1,4 +1,4 @@
-import { initGapi, signIn, getOrCreateDataFile, getFileContent, updateFileContent, uploadImage } from './drive-api.js';
+import { initGapi, signIn, getOrCreateDataFile, getFileContent, updateFileContent, uploadImage, createFolder } from './drive-api.js';
 import { CONFIG } from './config.js';
 
 // Categorías iniciales como objetos { name, id }
