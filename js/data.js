@@ -33,6 +33,8 @@ export async function initData() {
                 await signIn();
                 isDriveConnected = true;
                 console.log("✅ Conectado a Google Drive (Modo Admin)");
+                // Sincronizar de nuevo con privilegios de admin para asegurar data completa
+                await syncFromDrive();
             } catch (authErr) {
                 console.error("Error en autenticación de Drive:", authErr);
             }

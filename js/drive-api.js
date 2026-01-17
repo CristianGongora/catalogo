@@ -136,6 +136,16 @@ export async function getOrCreateDataFile() {
 
             if (result.error) throw new Error(result.error.message);
 
+            // Hacer el data.json público para lectura
+            try {
+                await gapi.client.drive.permissions.create({
+                    fileId: result.id,
+                    resource: { role: 'reader', type: 'anyone' }
+                });
+            } catch (pErr) {
+                console.warn("No se pudo hacer el archivo público (normal si no hay gapi listo):", pErr);
+            }
+
             console.log("✅ data.json creado con ID:", result.id);
             return result.id;
         }
@@ -174,9 +184,25 @@ export async function getFileContent(fileId) {
  */
 export async function updateFileContent(fileId, content) {
     try {
-        const metadata = {
-            mimeType: 'application/json'
-        };
+        const metadata = { mimeType: 'application/json' };
+
+        // Prioridad: Usar gapi client para evitar problemas de CORS
+        if (gapiInited && gapi.client.drive) {
+            await gapi.client.drive.files.update({
+                fileId: fileId,
+                resource: metadata, // opcional para solo contenido, pero bueno incluirlo
+                media: {
+                    mimeType: 'application/json',
+                    body: JSON.stringify(content)
+                }
+            });
+            console.log("✅ data.json actualizado (gapi)");
+            return;
+        }
+
+        // Fallback: Fetch multipart si gapi no está listo
+        const token = gapi.auth.getToken()?.access_token;
+        if (!token) throw new Error("No hay token para actualizar en Drive");
 
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
@@ -184,16 +210,26 @@ export async function updateFileContent(fileId, content) {
 
         const response = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`, {
             method: 'PATCH',
-            headers: new Headers({ 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token }),
+            headers: new Headers({ 'Authorization': 'Bearer ' + token }),
             body: form
         });
 
         if (!response.ok) {
-            const err = await response.json();
+            const err = await response.json().catch(() => ({}));
             throw new Error(err.error?.message || 'Error al actualizar archivo');
         }
 
-        console.log("✅ data.json actualizado en Drive");
+        // Asegurar que sea público si lo estamos actualizando como Admin
+        try {
+            if (gapi.client.drive) {
+                await gapi.client.drive.permissions.create({
+                    fileId: fileId,
+                    resource: { role: 'reader', type: 'anyone' }
+                });
+            }
+        } catch (pErr) { /* ignorable */ }
+
+        console.log("✅ data.json actualizado (fetch)");
     } catch (err) {
         console.error('Error actualizando archivo:', err);
         throw err;
