@@ -118,7 +118,7 @@ function showProductModal(product) {
 
     body.innerHTML = `
         <div style="text-align: center;">
-            <img src="${imgSrc}" style="max-width: 100%; max-height: 50vh; object-fit: contain; margin-bottom: 1rem; border-radius: 8px;">
+            <img src="${imgSrc}" class="modal-image">
             <h2 style="font-family: var(--font-heading); margin-bottom: 0.5rem;">${product.title}</h2>
             <div style="color: var(--color-gold-dark); font-weight: 500; font-size: 1.2rem; margin-bottom: 0.5rem;">${formatPrice(product.price)}</div>
             <p style="color: var(--color-gray); margin-bottom: 1.5rem;">${product.description || 'Sin descripción'}</p>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="48" fill="#000B1A" stroke="#D4AF37" stroke-width="3"/>
+  <text x="50" y="55" font-family="'Playfair Display', serif" font-size="35" font-weight="bold" fill="#D4AF37" text-anchor="middle" dominant-baseline="middle">CM</text>
+  <text x="50" y="75" font-family="'Outfit', sans-serif" font-size="8" fill="#D4AF37" text-anchor="middle" letter-spacing="2">CAMALÉ</text>
+</svg>
