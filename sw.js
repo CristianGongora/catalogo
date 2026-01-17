@@ -1,4 +1,4 @@
-const CACHE_NAME = 'camale-cache-v1';
+const CACHE_NAME = 'camale-cache-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -9,7 +9,6 @@ const ASSETS_TO_CACHE = [
     './js/data.js',
     './js/admin.js',
     './js/drive-api.js',
-    './js/config.js',
     './manifest.json'
 ];
 

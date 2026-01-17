@@ -132,6 +132,11 @@ export async function getOrCreateDataFile() {
             const cb = `&cb=${Date.now()}`;
             const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&key=${CONFIG.API_KEY}${cb}`);
             const result = await response.json();
+
+            if (result.error && result.error.message && result.error.message.includes('suspended')) {
+                console.error("🚨 CRÍTICO: El proyecto de Google Cloud ha sido SUSPENDIDO. Debes activar el nuevo proyecto o revisar la consola de Google.");
+            }
+
             files = result.files;
         }
 
@@ -219,7 +224,12 @@ export async function getFileContent(fileId) {
             return await response.json();
         }
 
-        throw new Error(`Error HTTP ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        if (errData.error && errData.error.message && errData.error.message.includes('suspended')) {
+            console.error("🚨 CRÍTICO: Tu proyecto de Google está SUSPENDIDO. Las categorías no cargarán hasta que actualices las credenciales en config.js con el nuevo proyecto.");
+        }
+
+        throw new Error(errData.error?.message || `Error HTTP ${response.status}`);
     } catch (err) {
         console.error('Error final descargando data.json:', err);
         throw err;

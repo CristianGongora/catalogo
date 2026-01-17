@@ -35,11 +35,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function startBackgroundSync() {
     setInterval(async () => {
-        // No sincronizar si somos admin (para evitar colisiones al editar)
         const isAdmin = localStorage.getItem('adminSession') === 'true';
         if (isAdmin) return;
 
-        console.log("🔄 Ejecutando sincronización de fondo...");
         const hasChanges = await initData();
         if (hasChanges) {
             refreshCurrentView();
