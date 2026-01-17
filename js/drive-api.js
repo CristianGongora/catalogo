@@ -164,9 +164,10 @@ export async function getOrCreateDataFile() {
  * Descarga el contenido de un archivo por ID
  */
 export async function getFileContent(fileId) {
-    // 1. Intentar con gapi client siempre que esté disponible (con o sin token)
-    // El cliente gapi maneja CORS y API Key automáticamente.
-    if (gapi.client && gapi.client.drive) {
+    const token = gapi.auth.getToken()?.access_token;
+
+    // 1. Intentar con gapi client si somos Admin (usa el token automáticamente)
+    if (token && gapi.client.drive) {
         try {
             const response = await gapi.client.drive.files.get({
                 fileId: fileId,
@@ -174,24 +175,30 @@ export async function getFileContent(fileId) {
             });
             return response.result;
         } catch (err) {
-            console.warn('gapi.client.drive.files.get ha fallado:', err);
-            if (err.status === 403) {
-                const msg = "⛔ ERROR 403: Acceso Denegado. El archivo data.json NO es público o la API Key está restringida. Verifica los permisos de la carpeta en Drive.";
-                console.error(msg);
-                // Si somos admin y falla, es muy raro, posiblemente token inválido
-            }
+            console.warn('gapi manual fetch (admin) ha fallado, intentando fallback público...', err);
         }
     }
 
-    // 2. Fallback: Fetch directo con API Key (A menudo bloqueado por CORS en navegadores para media)
+    // 2. Modo público: fetch directo con API Key (Mejorado para evitar CORS y 403)
     try {
-        const cb = `&cb=${Date.now()}`;
-        const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${CONFIG.API_KEY}${cb}`;
-        const response = await fetch(url);
+        const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${CONFIG.API_KEY}`;
+
+        // Usamos credentials: 'omit' para que Google no se confunda con cookies de sesión
+        // y pasamos la API Key también en el header por si el query param es ignorado
+        const response = await fetch(url, {
+            credentials: 'omit',
+            headers: {
+                'X-Goog-Api-Key': CONFIG.API_KEY
+            }
+        });
 
         if (!response.ok) {
             if (response.status === 403) {
-                throw new Error("ERROR_PERMISOS: El archivo no es accesible públicamente.");
+                console.error("⛔ ERROR 403 DETECTADO. Posibles causas:\n" +
+                    "1. La API Key en config.js tiene 'Restricciones de aplicación' (HTTP referrers) que NO incluyen tu dominio actual.\n" +
+                    "2. La 'Drive API' no está habilitada en tu proyecto de Google Cloud Console.\n" +
+                    "3. El archivo data.json no tiene permisos de Lector para 'Cualquier persona con el enlace'.");
+                throw new Error("ERROR_PERMISOS: Acceso denegado al catálogo.");
             }
             const errData = await response.json().catch(() => ({}));
             throw new Error(errData.error?.message || `Error HTTP ${response.status}`);
