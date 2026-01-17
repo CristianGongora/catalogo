@@ -153,6 +153,9 @@ body {
     position: relative;
     background-color: var(--color-white);
     /* Fondo blanco para contain */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .card-image {
@@ -163,8 +166,8 @@ body {
     height: 100%;
     object-fit: contain;
     /* Ajustar imagen completa */
-    padding: 10px;
-    /* Margen interno para que no toque los bordes */
+    padding: 15px;
+    /* Más aire alrededor de la joya/logo */
     transition: transform 0.6s ease;
 }
 

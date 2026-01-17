@@ -166,7 +166,7 @@ export async function getOrCreateDataFile() {
 export async function getFileContent(fileId) {
     const token = gapi.auth.getToken()?.access_token;
 
-    // 1. Intentar con gapi client si somos Admin (usa el token automáticamente)
+    // RUTA 1: GAPI Client (Ideal para Admins)
     if (token && gapi.client.drive) {
         try {
             const response = await gapi.client.drive.files.get({
@@ -175,31 +175,46 @@ export async function getFileContent(fileId) {
             });
             return response.result;
         } catch (err) {
-            console.warn('gapi manual fetch (admin) ha fallado, intentando fallback público...', err);
+            console.warn('Ruta 1 (GAPI Admin) fallida, intentando rutas públicas...', err);
         }
     }
 
-    // 2. Modo público: fetch directo con API Key (Sin headers para evitar preflight CORS)
+    // RUTA 2: Enlace UC (Altísima compatibilidad para archivos públicos en navegadores)
+    // Este endpoint suele saltarse bloqueos de CORS que el API v3 estricto impone.
+    try {
+        const ucUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
+        // No añadimos API Key aquí ya que este endpoint es para acceso puramente público/compartido.
+        const response = await fetch(ucUrl, { mode: 'cors', credentials: 'omit' });
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (err) {
+        console.warn('Ruta 2 (UC Link) fallida...', err);
+    }
+
+    // RUTA 3: Fetch Directo API v3 (Limpio)
     try {
         const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${CONFIG.API_KEY}`;
-
         const response = await fetch(url, {
             mode: 'cors',
             credentials: 'omit'
         });
 
-        if (!response.ok) {
-            if (response.status === 403) {
-                console.error("⛔ ERROR 403: Google ha denegado el acceso al archivo.\n" +
-                    "CAUSA PROBABLE: Tu API Key tiene restricciones de 'HTTP Referrer' que no incluyen este dominio.\n" +
-                    "SOLUCIÓN: Ve a Google Cloud Console -> Credenciales -> Tu API Key -> Añade a sitios permitidos: catalogo-ruddy-alpha.vercel.app/*");
-            }
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error?.message || `Error HTTP ${response.status}`);
+        if (response.ok) {
+            return await response.json();
         }
-        return await response.json();
+
+        if (response.status === 403) {
+            console.error("⛔ ERROR 403 PERSISTENTE. Causas críticas:\n" +
+                "1. API Key restringida a dominios que NO incluyen: " + window.location.hostname + "\n" +
+                "2. La 'Drive API' no está habilitada en Google Cloud.\n" +
+                "3. El archivo NO tiene permiso de 'Lector' para 'Cualquier persona con el enlace'.");
+        }
+
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error?.message || `Error HTTP ${response.status}`);
     } catch (err) {
-        console.error('Error final al leer contenido:', err);
+        console.error('Error final en todas las rutas de lectura:', err);
         throw err;
     }
 }
