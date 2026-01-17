@@ -28,12 +28,12 @@ export async function initGapi() {
 /**
  * Autenticación mediante Google Identity Services (GIS)
  */
-export async function signIn() {
+export async function signIn(force = false) {
     // Verificar si hay un token guardado y válido
     const savedToken = localStorage.getItem('gdrive_token');
     const tokenExpiry = localStorage.getItem('gdrive_token_expiry');
 
-    if (savedToken && tokenExpiry) {
+    if (!force && savedToken && tokenExpiry) {
         const now = Date.now();
         if (now < parseInt(tokenExpiry)) {
             // Token aún válido, usarlo
@@ -41,13 +41,13 @@ export async function signIn() {
             tokenResponse = { access_token: savedToken };
             gapi.client.setToken({ access_token: savedToken });
             return Promise.resolve(tokenResponse);
-        } else {
-            // Token expirado, limpiar
-            console.log("⚠️ Token expirado, solicitando nuevo");
-            localStorage.removeItem('gdrive_token');
-            localStorage.removeItem('gdrive_token_expiry');
         }
     }
+
+    // Token expirado o forzado, limpiar
+    console.log(force ? "🔄 Forzando nueva autenticación" : "⚠️ Token inexistente o expirado, solicitando nuevo");
+    localStorage.removeItem('gdrive_token');
+    localStorage.removeItem('gdrive_token_expiry');
 
     // No hay token válido, solicitar nuevo
     return new Promise((resolve, reject) => {
@@ -76,9 +76,26 @@ export async function signIn() {
             },
         });
 
-        // Solo mostrar prompt si no hay token válido
-        client.requestAccessToken({ prompt: '' });
+        // Si es forzado, mostramos el prompt de selección de cuenta
+        client.requestAccessToken({ prompt: force ? 'select_account' : '' });
     });
+}
+
+/**
+ * Wrapper para reintentar llamadas si el token falla (401)
+ */
+async function withRetry(apiCall) {
+    try {
+        return await apiCall();
+    } catch (err) {
+        const status = err.status || (err.result && err.result.error ? err.result.error.code : null);
+        if (status === 401) {
+            console.warn("🚫 Token no autorizado (401). Intentando refrescar...");
+            await signIn(true); // Forzar nuevo token
+            return await apiCall(); // Reintentar la llamada original
+        }
+        throw err;
+    }
 }
 
 /**
@@ -94,11 +111,11 @@ export async function getOrCreateDataFile() {
 
         // Usar gapi client si está disponible (con o sin token), es mejor para CORS
         if (gapi.client && gapi.client.drive) {
-            const response = await gapi.client.drive.files.list({
+            const response = await withRetry(() => gapi.client.drive.files.list({
                 q: q,
                 fields: 'files(id, name)',
                 spaces: 'drive'
-            });
+            }));
             files = response.result.files;
         } else {
             // Modo de emergencia: fetch directo con API Key (solo para metadatos suele funcionar)
@@ -132,21 +149,21 @@ export async function getOrCreateDataFile() {
             form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
             form.append('file', new Blob([initialData], { type: 'application/json' }));
 
-            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+            const response = await withRetry(() => fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
                 method: 'POST',
-                headers: new Headers({ 'Authorization': 'Bearer ' + token.access_token }),
+                headers: new Headers({ 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token }),
                 body: form
-            });
+            }));
             const result = await response.json();
 
             if (result.error) throw new Error(result.error.message);
 
             // Hacer el data.json público para lectura
             try {
-                await gapi.client.drive.permissions.create({
+                await withRetry(() => gapi.client.drive.permissions.create({
                     fileId: result.id,
                     resource: { role: 'reader', type: 'anyone' }
-                });
+                }));
             } catch (pErr) {
                 console.warn("No se pudo hacer el archivo público (normal si no hay gapi listo):", pErr);
             }
@@ -169,10 +186,10 @@ export async function getFileContent(fileId) {
     // RUTA 1: GAPI Client (Ideal para Admins)
     if (token && gapi.client.drive) {
         try {
-            const response = await gapi.client.drive.files.get({
+            const response = await withRetry(() => gapi.client.drive.files.get({
                 fileId: fileId,
                 alt: 'media'
-            });
+            }));
             return response.result;
         } catch (err) {
             console.warn('Ruta 1 (GAPI Admin) fallida, intentando rutas públicas...', err);
@@ -232,11 +249,11 @@ export async function updateFileContent(fileId, content) {
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', new Blob([JSON.stringify(content)], { type: 'application/json' }));
 
-        const response = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`, {
+        const response = await withRetry(() => fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`, {
             method: 'PATCH',
-            headers: new Headers({ 'Authorization': 'Bearer ' + token }),
+            headers: new Headers({ 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token }),
             body: form
-        });
+        }));
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
@@ -261,13 +278,13 @@ export async function ensurePublicPermission(fileId) {
         const token = gapi.auth.getToken()?.access_token;
         if (!token || !gapi.client.drive) return;
 
-        await gapi.client.drive.permissions.create({
+        await withRetry(() => gapi.client.drive.permissions.create({
             fileId: fileId,
             resource: {
                 role: 'reader',
                 type: 'anyone'
             }
-        });
+        }));
         console.log(`✅ Permisos públicos asegurados para: ${fileId}`);
     } catch (err) {
         console.warn(`No se pudieron actualizar los permisos para ${fileId}:`, err);
@@ -284,23 +301,23 @@ export async function createFolder(folderName, parentId) {
 
         // Prioridad: Usar gapi client si está disponible (mejor manejo de CORS)
         if (gapiInited && gapi.client.drive) {
-            const response = await gapi.client.drive.files.create({
+            const response = await withRetry(() => gapi.client.drive.files.create({
                 resource: metadata,
                 fields: 'id'
-            });
+            }));
             console.log(`✅ Carpeta '${folderName}' creada (gapi):`, response.result.id);
             return response.result.id;
         }
 
         // Fallback: fetch directo (URL corregida sin /api/)
-        const response = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+        const response = await withRetry(() => fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
             method: 'POST',
             headers: new Headers({
                 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token,
                 'Content-Type': 'application/json'
             }),
             body: JSON.stringify(metadata)
-        });
+        }));
 
         const result = await response.json();
         if (result.error) throw new Error(result.error.message);
@@ -321,17 +338,17 @@ export async function createFolder(folderName, parentId) {
 export async function deleteFile(fileId) {
     try {
         if (gapiInited && gapi.client.drive) {
-            await gapi.client.drive.files.delete({ fileId: fileId });
+            await withRetry(() => gapi.client.drive.files.delete({ fileId: fileId }));
             console.log("✅ Eliminado de Drive (gapi):", fileId);
             return;
         }
 
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+        const response = await withRetry(() => fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
             method: 'DELETE',
             headers: new Headers({
                 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token
             })
-        });
+        }));
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
