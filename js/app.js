@@ -17,13 +17,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             .catch(err => console.error('Error al registrar SW:', err));
     }
 
-    // Inicializar UI
-    initNavigation();
-
     // Cargar datos iniciales
     showLoading();
     try {
         await initData();
+        // Inicializar navegación solo DESPUÉS de cargar datos
+        initNavigation();
         // Iniciar sincronización de fondo (30 segundos)
         startBackgroundSync();
     } catch (error) {

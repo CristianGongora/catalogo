@@ -188,26 +188,10 @@ export async function getFileContent(fileId) {
  */
 export async function updateFileContent(fileId, content) {
     try {
-        const metadata = { mimeType: 'application/json' };
-
-        // Prioridad: Usar gapi client para evitar problemas de CORS
-        if (gapiInited && gapi.client.drive) {
-            await gapi.client.drive.files.update({
-                fileId: fileId,
-                resource: metadata, // opcional para solo contenido, pero bueno incluirlo
-                media: {
-                    mimeType: 'application/json',
-                    body: JSON.stringify(content)
-                }
-            });
-            console.log("✅ data.json actualizado (gapi)");
-            return;
-        }
-
-        // Fallback: Fetch multipart si gapi no está listo
         const token = gapi.auth.getToken()?.access_token;
         if (!token) throw new Error("No hay token para actualizar en Drive");
 
+        const metadata = { mimeType: 'application/json' };
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', new Blob([JSON.stringify(content)], { type: 'application/json' }));
@@ -223,9 +207,9 @@ export async function updateFileContent(fileId, content) {
             throw new Error(err.error?.message || 'Error al actualizar archivo');
         }
 
-        // Asegurar que sea público si lo estamos actualizando como Admin
+        // Asegurar que sea público si lo estamos actualizando como Admin (gapi client para esto si funciona)
         try {
-            if (gapi.client.drive) {
+            if (gapiInited && gapi.client.drive) {
                 await gapi.client.drive.permissions.create({
                     fileId: fileId,
                     resource: { role: 'reader', type: 'anyone' }
@@ -233,7 +217,7 @@ export async function updateFileContent(fileId, content) {
             }
         } catch (pErr) { /* ignorable */ }
 
-        console.log("✅ data.json actualizado (fetch)");
+        console.log("✅ data.json actualizado correctamente");
     } catch (err) {
         console.error('Error actualizando archivo:', err);
         throw err;

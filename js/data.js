@@ -7,6 +7,7 @@ let cachedProducts = [];
 
 let dataFileId = null;
 let isDriveConnected = false;
+let hasSuccessfullyLoaded = false; // Flag de seguridad para evitar sobreescribir con vacío
 
 /**
  * Inicializa la persistencia. Intenta conectar con Drive si hay CONFIG.
@@ -34,7 +35,8 @@ export async function initData() {
                 isDriveConnected = true;
                 console.log("✅ Conectado a Google Drive (Modo Admin)");
                 // Sincronizar de nuevo con privilegios de admin para asegurar data completa
-                await syncFromDrive();
+                const changes = await syncFromDrive();
+                return changes;
             } catch (authErr) {
                 console.error("Error en autenticación de Drive:", authErr);
             }
@@ -42,6 +44,7 @@ export async function initData() {
     } catch (err) {
         console.error("Error al inicializar datos:", err);
     }
+    return false;
 }
 
 async function syncFromDrive() {
@@ -51,6 +54,10 @@ async function syncFromDrive() {
         if (!dataFileId) return; // Nada que sincronizar
 
         const content = await getFileContent(dataFileId);
+
+        // Marcar como cargado si llegamos aquí (incluso si el JSON está vacío, el archivo existe)
+        hasSuccessfullyLoaded = true;
+
         if (content) {
             const oldData = JSON.stringify({ categories: cachedCategories, products: cachedProducts });
 
@@ -66,7 +73,6 @@ async function syncFromDrive() {
                 console.log("🔄 Datos actualizados desde Drive (Cambios detectados)");
                 return true; // Indica que hubo cambios
             }
-            return false; // No hubo cambios
         }
     } catch (err) {
         console.error("Error sincronizando desde Drive:", err);
@@ -75,7 +81,10 @@ async function syncFromDrive() {
 }
 
 async function saveToDrive() {
-    if (!isDriveConnected || !dataFileId) return;
+    if (!isDriveConnected || !dataFileId || !hasSuccessfullyLoaded) {
+        console.warn("⚠️ Guardado cancelado: No hay conexión o no se han cargado datos previos para evitar sobreescritura.");
+        return;
+    }
     try {
         await updateFileContent(dataFileId, {
             categories: cachedCategories,
