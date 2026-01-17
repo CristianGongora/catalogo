@@ -5,9 +5,11 @@ let gisInited = false;
 let tokenResponse = null;
 
 /**
- * Inicializa GAPI (Google API Client)
+ * Inicializa GAPI (Google API Client) con reintentos para errores transitorios (502)
  */
-export async function initGapi() {
+export async function initGapi(retries = 3) {
+    if (gapiInited) return Promise.resolve();
+
     return new Promise((resolve, reject) => {
         gapi.load('client', async () => {
             try {
@@ -18,8 +20,15 @@ export async function initGapi() {
                 gapiInited = true;
                 resolve();
             } catch (err) {
-                console.error('Error al inicializar GAPI:', err);
-                reject(err);
+                console.warn(`Intento de inicialización GAPI fallido (${retries} restantes):`, err);
+                if (retries > 0) {
+                    setTimeout(() => {
+                        initGapi(retries - 1).then(resolve).catch(reject);
+                    }, 2000); // Esperar 2 segundos antes de reintentar
+                } else {
+                    console.error('Error crítico al inicializar GAPI tras varios intentos:', err);
+                    reject(err);
+                }
             }
         });
     });
