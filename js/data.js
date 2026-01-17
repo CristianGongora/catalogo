@@ -1,15 +1,7 @@
 import { initGapi, signIn, getOrCreateDataFile, getFileContent, updateFileContent, uploadImage, createFolder, deleteFile } from './drive-api.js';
 import { CONFIG } from './config.js';
 
-// Categorías iniciales como objetos { name, id }
-let cachedCategories = [
-    { name: 'Aretes', id: null },
-    { name: 'Cadenas', id: null },
-    { name: 'Candongas', id: null },
-    { name: 'Pulseras', id: null },
-    { name: 'Tobilleras', id: null }
-];
-
+let cachedCategories = [];
 let cachedProducts = [];
 
 
@@ -30,30 +22,28 @@ export async function initData() {
 
     try {
         await initGapi();
-        // Solo intentamos login si hay sesión de admin activa
+
+        // Intentar cargar datos siempre (modo lectura pública)
+        // syncFromDrive usará la API Key si no hay token OAuth
+        await syncFromDrive();
+
+        // Solo intentamos login OAuth si hay sesión de admin activa para habilitar edición
         if (localStorage.getItem('adminSession') === 'true') {
-            // Intentar autenticación (usará token existente si está disponible)
             try {
                 await signIn();
                 isDriveConnected = true;
-                console.log("✅ Conectado a Google Drive");
-                await syncFromDrive();
+                console.log("✅ Conectado a Google Drive (Modo Admin)");
             } catch (authErr) {
                 console.error("Error en autenticación de Drive:", authErr);
-                // Si falla la autenticación, continuamos en modo local
-                console.warn("Continuando en modo local sin sincronización con Drive");
             }
-        } else {
-            // Cargar desde caché local si existe (opcional, por ahora demo)
-            console.log("Modo visualizador: Usando datos locales.");
         }
     } catch (err) {
-        console.error("Error al conectar con Drive:", err);
+        console.error("Error al inicializar datos:", err);
     }
 }
 
 async function syncFromDrive() {
-    if (!isDriveConnected) return;
+    // Para lectura pública solo necesitamos gapi init con la API Key (ya hecho en initGapi)
     try {
         dataFileId = await getOrCreateDataFile();
         const content = await getFileContent(dataFileId);

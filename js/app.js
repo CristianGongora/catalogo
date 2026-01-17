@@ -37,6 +37,7 @@ function initNavigation() {
     const btnHome = document.getElementById('btnHome');
     const btnBack = document.getElementById('btnBack');
     const brandTitle = document.querySelector('.brand-title');
+    const logoLink = document.getElementById('logoLink');
     const btnLogin = document.getElementById('btnLogin');
 
     // Navegación básica
@@ -48,7 +49,13 @@ function initNavigation() {
     };
 
     btnHome.addEventListener('click', goHome);
-    brandTitle.addEventListener('click', goHome); // Clic en logo va a home
+    brandTitle.addEventListener('click', goHome);
+    if (logoLink) {
+        logoLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            goHome();
+        });
+    }
 
     btnBack.addEventListener('click', () => {
         goHome();
