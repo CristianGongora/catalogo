@@ -129,6 +129,10 @@ function showProductModal() {
                 <div class="modal-product-info">
                     <div class="zoom-container" id="zoomContainer">
                         <img src="${imgSrc}" class="modal-image" id="modalImage">
+                        <div class="zoom-controls">
+                            <button class="zoom-btn" id="btnZoomIn" title="Acercar">+</button>
+                            <button class="zoom-btn" id="btnZoomOut" title="Alejar">−</button>
+                        </div>
                     </div>
                     <h2 style="font-family: var(--font-heading); margin-bottom: 0.5rem;">${product.title}</h2>
                     <div style="color: var(--color-gold-dark); font-weight: 500; font-size: 1.2rem; margin-bottom: 0.5rem;">${formatPrice(product.price)}</div>
@@ -147,47 +151,101 @@ function showProductModal() {
 
         const zoomContainer = document.getElementById('zoomContainer');
         const modalImage = document.getElementById('modalImage');
+        let currentScale = 1;
+        const MIN_SCALE = 1;
+        const MAX_SCALE = 4;
+        const ZOOM_STEP = 0.5;
 
-        // Alternar Zoom
-        const toggleZoom = (e) => {
-            zoomContainer.classList.toggle('zoomed');
-            if (!zoomContainer.classList.contains('zoomed')) {
+        // --- Lógica de Zoom Centralizada ---
+        const applyZoom = (scale, originX = null, originY = null) => {
+            currentScale = Math.min(Math.max(scale, MIN_SCALE), MAX_SCALE);
+
+            if (currentScale > 1) {
+                zoomContainer.classList.add('zoomed');
+            } else {
+                zoomContainer.classList.remove('zoomed');
                 modalImage.style.transformOrigin = 'center';
+            }
+
+            if (originX !== null && originY !== null) {
+                modalImage.style.transformOrigin = `${originX}% ${originY}%`;
+            }
+            modalImage.style.transform = `scale(${currentScale})`;
+        };
+
+        // --- Botones +/- ---
+        document.getElementById('btnZoomIn').onclick = (e) => {
+            e.stopPropagation();
+            applyZoom(currentScale + ZOOM_STEP);
+        };
+        document.getElementById('btnZoomOut').onclick = (e) => {
+            e.stopPropagation();
+            applyZoom(currentScale - ZOOM_STEP);
+        };
+
+        // --- Alternar Zoom (Click simple o Tap) ---
+        zoomContainer.onclick = (e) => {
+            if (e.target.closest('.zoom-btn')) return;
+            if (currentScale > 1) {
+                applyZoom(1);
             } else {
-                // Posicionar origen donde se hizo clic inicial si es posible
-                updateZoomPosition(e);
+                const rect = zoomContainer.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                applyZoom(2.5, x, y);
             }
         };
 
-        const updateZoomPosition = (e) => {
-            if (!zoomContainer.classList.contains('zoomed')) return;
-
+        // --- Panning (PC) ---
+        zoomContainer.onmousemove = (e) => {
+            if (currentScale <= 1 || e.target.closest('.zoom-btn')) return;
             const rect = zoomContainer.getBoundingClientRect();
-            let x, y;
-
-            if (e.type.startsWith('touch')) {
-                x = e.touches[0].clientX - rect.left;
-                y = e.touches[0].clientY - rect.top;
-            } else {
-                x = e.clientX - rect.left;
-                y = e.clientY - rect.top;
-            }
-
-            const xPercent = (x / rect.width) * 100;
-            const yPercent = (y / rect.height) * 100;
-
-            modalImage.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            modalImage.style.transformOrigin = `${x}% ${y}%`;
         };
 
-        zoomContainer.onclick = toggleZoom;
-        zoomContainer.onmousemove = updateZoomPosition;
+        // --- Pinch-to-Zoom y Panning (Móvil) ---
+        let initialDist = null;
+        let initialScale = 1;
 
-        // Soporte Touch para Panning
-        zoomContainer.ontouchmove = (e) => {
-            if (zoomContainer.classList.contains('zoomed')) {
-                e.preventDefault(); // Evitar scroll de página mientras se panea
-                updateZoomPosition(e);
+        zoomContainer.ontouchstart = (e) => {
+            if (e.touches.length === 2) {
+                initialDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialScale = currentScale;
             }
+        };
+
+        zoomContainer.ontouchmove = (e) => {
+            if (e.touches.length === 2 && initialDist !== null) {
+                e.preventDefault();
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const zoomFactor = dist / initialDist;
+
+                // Calcular punto medio entre dedos para el transform-origin
+                const rect = zoomContainer.getBoundingClientRect();
+                const midX = ((e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left) / rect.width * 100;
+                const midY = ((e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top) / rect.height * 100;
+
+                applyZoom(initialScale * zoomFactor, midX, midY);
+            } else if (e.touches.length === 1 && currentScale > 1) {
+                // Panning suave en móvil con un dedo
+                e.preventDefault();
+                const rect = zoomContainer.getBoundingClientRect();
+                const x = ((e.touches[0].clientX - rect.left) / rect.width) * 100;
+                const y = ((e.touches[0].clientY - rect.top) / rect.height) * 100;
+                modalImage.style.transformOrigin = `${x}% ${y}%`;
+            }
+        };
+
+        zoomContainer.ontouchend = () => {
+            initialDist = null;
         };
 
         // Re-adjuntar eventos de navegación

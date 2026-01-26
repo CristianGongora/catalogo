@@ -418,9 +418,56 @@ body {
 }
 
 .zoom-container.zoomed .modal-image {
-    transform: scale(2.5);
+    /* El escalado se manejará mediante inline styles para permitir zoom dinámico (pinch/botones) */
     transition: transform 0.1s ease-out;
-    /* Mas rápido para smooth panning */
+}
+
+/* Controles de Zoom (Botones +/-) */
+.zoom-controls {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.zoom-container:hover .zoom-controls,
+.zoom-container.zoomed .zoom-controls {
+    opacity: 1;
+}
+
+.zoom-btn {
+    background: white;
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--color-dark);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition);
+}
+
+.zoom-btn:hover {
+    background-color: var(--color-gold);
+    color: white;
+    transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+    .zoom-controls {
+        display: none;
+        /* Ocultar en móviles, usar pinch-to-zoom */
+    }
 }
 
 .modal-nav-container {
