@@ -127,7 +127,9 @@ function showProductModal() {
             <div class="modal-nav-container">
                 <button class="modal-nav-btn prev-btn" id="prevProduct">❮</button>
                 <div class="modal-product-info">
-                    <img src="${imgSrc}" class="modal-image">
+                    <div class="zoom-container" id="zoomContainer">
+                        <img src="${imgSrc}" class="modal-image" id="modalImage">
+                    </div>
                     <h2 style="font-family: var(--font-heading); margin-bottom: 0.5rem;">${product.title}</h2>
                     <div style="color: var(--color-gold-dark); font-weight: 500; font-size: 1.2rem; margin-bottom: 0.5rem;">${formatPrice(product.price)}</div>
                     <p style="color: var(--color-gray); margin-bottom: 1.5rem;">${product.description || 'Sin descripción'}</p>
@@ -142,6 +144,51 @@ function showProductModal() {
                 <button class="modal-nav-btn next-btn" id="nextProduct">❯</button>
             </div>
         `;
+
+        const zoomContainer = document.getElementById('zoomContainer');
+        const modalImage = document.getElementById('modalImage');
+
+        // Alternar Zoom
+        const toggleZoom = (e) => {
+            zoomContainer.classList.toggle('zoomed');
+            if (!zoomContainer.classList.contains('zoomed')) {
+                modalImage.style.transformOrigin = 'center';
+            } else {
+                // Posicionar origen donde se hizo clic inicial si es posible
+                updateZoomPosition(e);
+            }
+        };
+
+        const updateZoomPosition = (e) => {
+            if (!zoomContainer.classList.contains('zoomed')) return;
+
+            const rect = zoomContainer.getBoundingClientRect();
+            let x, y;
+
+            if (e.type.startsWith('touch')) {
+                x = e.touches[0].clientX - rect.left;
+                y = e.touches[0].clientY - rect.top;
+            } else {
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+            }
+
+            const xPercent = (x / rect.width) * 100;
+            const yPercent = (y / rect.height) * 100;
+
+            modalImage.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+        };
+
+        zoomContainer.onclick = toggleZoom;
+        zoomContainer.onmousemove = updateZoomPosition;
+
+        // Soporte Touch para Panning
+        zoomContainer.ontouchmove = (e) => {
+            if (zoomContainer.classList.contains('zoomed')) {
+                e.preventDefault(); // Evitar scroll de página mientras se panea
+                updateZoomPosition(e);
+            }
+        };
 
         // Re-adjuntar eventos de navegación
         document.getElementById('prevProduct').onclick = (e) => {

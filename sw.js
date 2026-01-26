@@ -8,7 +8,9 @@ const ASSETS_TO_CACHE = [
     './js/ui.js',
     './js/data.js',
     './js/admin.js',
-    './js/drive-api.js',
+    './js/supabase-api.js',
+    './js/cloudinary-api.js',
+    './js/config.js',
     './manifest.json'
 ];
 

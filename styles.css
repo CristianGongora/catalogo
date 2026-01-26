@@ -396,6 +396,31 @@ body {
     max-height: 45vh;
     object-fit: contain;
     border-radius: 8px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: zoom-in;
+}
+
+/* Zoom logic styles */
+.zoom-container {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #fbfbfb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-in;
+}
+
+.zoom-container.zoomed {
+    cursor: zoom-out;
+}
+
+.zoom-container.zoomed .modal-image {
+    transform: scale(2.5);
+    transition: transform 0.1s ease-out;
+    /* Mas rápido para smooth panning */
 }
 
 .modal-nav-container {

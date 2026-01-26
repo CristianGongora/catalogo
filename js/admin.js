@@ -89,7 +89,7 @@ function openLoginModal() {
             localStorage.setItem('adminSession', 'true');
             modal.hidden = true;
 
-            // Disparar sincronización con Drive inmediatamente sin recargar
+            // Disparar sincronización con Supabase inmediatamente sin recargar
             import('./data.js').then(dataMod => {
                 dataMod.initData().then(() => {
                     console.log("🔄 Datos sincronizados tras login de admin");
